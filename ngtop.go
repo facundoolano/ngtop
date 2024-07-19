@@ -16,7 +16,7 @@ import (
 )
 
 // TODO support other formats
-const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)\] "(?P<request_raw>[^"]*)" (?P<status>\d{3}) (?P<bytes_sent>\d+) "(?P<referer>[^"]*)" "(?P<user_agent_raw>[^"]*)"`
+const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)\] "(?P<request_raw>[^"]*)" (?P<status>\d{3}) (?P<bytes_sent>\d+) "(?P<referrer>[^"]*)" "(?P<user_agent_raw>[^"]*)"`
 
 // TODO add arg to parse log files
 var cli struct {
@@ -73,6 +73,12 @@ func dbInit(dbPath string, logFiles ...string) {
 	// TODO figure out best approach to skip already loaded
 	// without missing logs from partial/errored/missed files
 
+	logPattern := regexp.MustCompile(LOG_COMBINED_PATTERN)
+	fields := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referrer", "user_agent_raw", "method", "path", "user_agent"}
+	valuePlaceholder := strings.TrimSuffix(strings.Repeat("?,", len(fields)), ",")
+	// TODO prepare statement instead?
+	insertStmt := fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(fields, ","), valuePlaceholder)
+
 	for _, path := range logFiles {
 		// FIXME add zipped file support, don't rely on extension
 		if filepath.Ext(path) == ".gz" {
@@ -85,7 +91,6 @@ func dbInit(dbPath string, logFiles ...string) {
 		checkError(err)
 		defer file.Close()
 
-		logPattern := regexp.MustCompile(LOG_COMBINED_PATTERN)
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -95,10 +100,12 @@ func dbInit(dbPath string, logFiles ...string) {
 				continue
 			}
 
-			// TODO insert in batches
-			// TODO insert
-
-			fmt.Println(values)
+			queryValues := make([]interface{}, len(fields))
+			for i, field := range fields {
+				queryValues[i] = values[field]
+			}
+			_, err := db.Exec(insertStmt, queryValues...)
+			checkError(err)
 		}
 		checkError(scanner.Err())
 
