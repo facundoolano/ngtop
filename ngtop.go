@@ -16,7 +16,7 @@ import (
 )
 
 // TODO support other formats
-const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)\] "(?P<request_raw>[^"]*)" (?P<status>\d{3}) (?P<bytes_sent>\d+) "(?P<referrer>[^"]*)" "(?P<user_agent_raw>[^"]*)"`
+const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)\] "(?P<request_raw>[^"]*)" (?P<status>\d{3}) (?P<bytes_sent>\d+) "(?P<referer>[^"]*)" "(?P<user_agent_raw>[^"]*)"`
 
 // TODO add arg to parse log files
 var cli struct {
@@ -53,7 +53,7 @@ func dbInit(dbPath string, logFiles ...string) {
 			request_raw		TEXT NOT NULL,
 			status			INTEGER,
 			bytes_sent		INTEGER,
-			referrer 		TEXT,
+			referer 		TEXT,
 			user_agent_raw 	TEXT,
 
 			method			TEXT,
@@ -74,7 +74,7 @@ func dbInit(dbPath string, logFiles ...string) {
 	// without missing logs from partial/errored/missed files
 
 	logPattern := regexp.MustCompile(LOG_COMBINED_PATTERN)
-	fields := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referrer", "user_agent_raw", "method", "path", "user_agent"}
+	fields := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent"}
 	valuePlaceholder := strings.TrimSuffix(strings.Repeat("?,", len(fields)), ",")
 	// TODO prepare statement instead?
 	insertStmt := fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(fields, ","), valuePlaceholder)
