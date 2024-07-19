@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"compress/gzip"
 	"database/sql"
 	"fmt"
 	"io"
@@ -89,7 +90,7 @@ func queryTop(db *sql.DB) {
 	rows, err := db.Query(`
 SELECT path, count(1)
 FROM access_logs
-WHERE time > datetime('now', '-1 hour')
+WHERE time > datetime('now', '-1 month')
 GROUP BY 1
 ORDER BY 2 DESC
 LIMIT 10
@@ -118,18 +119,21 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 	valuePlaceholder := strings.TrimSuffix(strings.Repeat("?,", len(fields)), ",")
 
 	for _, path := range logFiles {
-		// FIXME add zipped file support, don't rely on extension
-		if filepath.Ext(path) == ".gz" {
-			log.Printf("skipping zipped file %s", path)
-			continue
-		}
 
 		log.Printf("parsing %s", path)
 		file, err := os.Open(path)
 		checkError(err)
 		defer file.Close()
 
-		scanner := bufio.NewScanner(file)
+		// if it's gzipped, wrap in a decompressing reader
+		var reader io.Reader = file
+		if filepath.Ext(path) == ".gz" {
+			gz, err := gzip.NewReader(file)
+			checkError(err)
+			reader = gz
+		}
+
+		scanner := bufio.NewScanner(reader)
 		tx, err := db.Begin()
 		checkError(err)
 		insertStmt, err := tx.Prepare(fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(fields, ","), valuePlaceholder))
