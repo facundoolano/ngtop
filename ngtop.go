@@ -139,15 +139,15 @@ func parseLogLine(pattern *regexp.Regexp, logLine string) map[string]interface{}
 
 	status, _ := strconv.Atoi(result["status"].(string))
 	result["status"] = status
+	result["user_agent"] = result["user_agent_raw"]
 
 	request_parts := strings.Split(result["request_raw"].(string), " ")
 	if len(request_parts) < 3 {
-		return nil
+		// if the request line is weird, don't try to extract its fields
+		result["method"] = request_parts[0]
+		result["path"] = request_parts[1]
 	}
 
-	result["method"] = request_parts[0]
-	result["path"] = request_parts[1]
-	result["user_agent"] = result["user_agent_raw"]
 	return result
 }
 
