@@ -33,17 +33,18 @@ func main() {
 
 	// FIXME use a standard location by default
 	// FIXME allow override via cli arg or config
-	dbInit("./ngtop.db", cli.Paths...)
+	db := initDB("./ngtop.db")
+	defer db.Close()
+
+	loadLogs(db, cli.Paths...)
 
 	// err := ctx.Run()
 	// ctx.FatalIfErrorf(err)
 }
 
-func dbInit(dbPath string, logFiles ...string) {
+func initDB(dbPath string) *sql.DB {
 	db, err := sql.Open("sqlite3", dbPath)
 	checkError(err)
-	defer db.Close()
-
 	_, err = db.Exec("PRAGMA journal_mode=memory;")
 	checkError(err)
 
@@ -72,6 +73,11 @@ func dbInit(dbPath string, logFiles ...string) {
 	checkError(err)
 
 	// TODO add indexes according to expected queries
+
+	return db
+}
+
+func loadLogs(db *sql.DB, logFiles ...string) {
 
 	// TODO figure out best approach to skip already loaded
 	// without missing logs from partial/errored/missed files
@@ -142,7 +148,7 @@ func parseLogLine(pattern *regexp.Regexp, logLine string) map[string]interface{}
 	result["user_agent"] = result["user_agent_raw"]
 
 	request_parts := strings.Split(result["request_raw"].(string), " ")
-	if len(request_parts) < 3 {
+	if len(request_parts) == 3 {
 		// if the request line is weird, don't try to extract its fields
 		result["method"] = request_parts[0]
 		result["path"] = request_parts[1]
@@ -151,6 +157,7 @@ func parseLogLine(pattern *regexp.Regexp, logLine string) map[string]interface{}
 	return result
 }
 
+// TODO think if this is reasonable enough for all cases
 func checkError(err error) {
 	if err != nil {
 		log.Panic(err)
