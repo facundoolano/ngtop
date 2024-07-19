@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alecthomas/kong"
 	_ "github.com/mattn/go-sqlite3"
@@ -77,6 +78,12 @@ func initDB(dbPath string) *sql.DB {
 	return db
 }
 
+func queryTop(db *sql.DB) *sql.Rows {
+	// rows, err := db.Query("SELECT ")
+	// checkError(err)
+	return nil
+}
+
 func loadLogs(db *sql.DB, logFiles ...string) {
 
 	// TODO figure out best approach to skip already loaded
@@ -138,13 +145,22 @@ func parseLogLine(pattern *regexp.Regexp, logLine string) map[string]interface{}
 
 	// assuming all the fields were found otherwise there would be no match above
 	// FIXME normalize path
-	// FIXME normalize user agent
 
+	// parse log time to time.Time
+	clfLayout := "02/Jan/2006:15:04:05 -0700"
+	time, err := time.Parse(clfLayout, result["time"].(string))
+	result["time"] = time
+	checkError(err)
+
+	// bytes as integer
 	bytes_sent, _ := strconv.Atoi(result["bytes_sent"].(string))
 	result["bytes_sent"] = bytes_sent
 
+	// status as integer
 	status, _ := strconv.Atoi(result["status"].(string))
 	result["status"] = status
+
+	// FIXME normalize user agent
 	result["user_agent"] = result["user_agent_raw"]
 
 	request_parts := strings.Split(result["request_raw"].(string), " ")
