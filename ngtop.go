@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -90,7 +91,7 @@ func queryTop(db *sql.DB) {
 	rows, err := db.Query(`
 SELECT path, count(1)
 FROM access_logs
-WHERE time > datetime('now', '-1 month')
+WHERE time > datetime('now', '-1 month') AND status <> 301
 GROUP BY 1
 ORDER BY 2 DESC
 LIMIT 10
@@ -172,7 +173,6 @@ func parseLogLine(pattern *regexp.Regexp, logLine string) map[string]interface{}
 	}
 
 	// assuming all the fields were found otherwise there would be no match above
-	// FIXME normalize path
 
 	// parse log time to time.Time
 	clfLayout := "02/Jan/2006:15:04:05 -0700"
@@ -195,7 +195,12 @@ func parseLogLine(pattern *regexp.Regexp, logLine string) map[string]interface{}
 	if len(request_parts) == 3 {
 		// if the request line is weird, don't try to extract its fields
 		result["method"] = request_parts[0]
-		result["path"] = request_parts[1]
+		raw_path := request_parts[1]
+		if url, err := url.Parse(raw_path); err == nil {
+			result["path"] = url.Path
+		} else {
+			result["path"] = raw_path
+		}
 	}
 
 	return result
