@@ -3,16 +3,20 @@ package main
 import (
 	"bufio"
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/alecthomas/kong"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const LOG_COMBINED_PATTERN = `(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>.*?)\] "(?P<request>[^"]*)" (?P<status>\d{3}) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"`
+// TODO support other formats
+const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)\] "(?P<request_raw>[^"]*)" (?P<status>\d{3}) (?P<bytes_sent>\d+) "(?P<referer>[^"]*)" "(?P<user_agent_raw>[^"]*)"`
 
 // TODO add arg to parse log files
 var cli struct {
@@ -85,38 +89,52 @@ func dbInit(dbPath string, logFiles ...string) {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := scanner.Text()
-			parsed := parseLogLine(logPattern, line)
-			if parsed == nil {
+			values := parseLogLine(logPattern, line)
+			if values == nil {
 				log.Printf("couldn't parse line %s", line)
 				continue
 			}
 
-			// TODO insert into table
+			// TODO insert in batches
+			// TODO insert
 
-			log.Print(parsed)
+			fmt.Println(values)
 		}
 		checkError(scanner.Err())
 
 	}
-
-	// TODO accept more input files
-	// load all rows from input files
-
 }
 
-func parseLogLine(pattern *regexp.Regexp, logLine string) map[string]string {
+func parseLogLine(pattern *regexp.Regexp, logLine string) map[string]interface{} {
 	match := pattern.FindStringSubmatch(logLine)
 	if match == nil {
 		return nil
 	}
-	result := make(map[string]string)
+	result := make(map[string]interface{})
 	for i, name := range pattern.SubexpNames() {
-		if i != 0 && name != "" {
+		if i != 0 && name != "" && match[i] != "-" {
 			result[name] = match[i]
 		}
 	}
-	// TODO rename fields
-	// TODO add non raw
+
+	// assuming all the fields were found otherwise there would be no match above
+	// FIXME normalize path
+	// FIXME normalize user agent
+
+	bytes_sent, _ := strconv.Atoi(result["bytes_sent"].(string))
+	result["bytes_sent"] = bytes_sent
+
+	status, _ := strconv.Atoi(result["status"].(string))
+	result["status"] = status
+
+	request_parts := strings.Split(result["request_raw"].(string), " ")
+	if len(request_parts) < 3 {
+		return nil
+	}
+
+	result["method"] = request_parts[0]
+	result["path"] = request_parts[1]
+	result["user_agent"] = result["user_agent_raw"]
 	return result
 }
 
