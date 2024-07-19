@@ -79,8 +79,6 @@ func dbInit(dbPath string, logFiles ...string) {
 	logPattern := regexp.MustCompile(LOG_COMBINED_PATTERN)
 	fields := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent"}
 	valuePlaceholder := strings.TrimSuffix(strings.Repeat("?,", len(fields)), ",")
-	// TODO prepare statement instead?
-	insertStmt := fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(fields, ","), valuePlaceholder)
 
 	for _, path := range logFiles {
 		// FIXME add zipped file support, don't rely on extension
@@ -95,6 +93,11 @@ func dbInit(dbPath string, logFiles ...string) {
 		defer file.Close()
 
 		scanner := bufio.NewScanner(file)
+		tx, err := db.Begin()
+		checkError(err)
+		insertStmt, err := tx.Prepare(fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(fields, ","), valuePlaceholder))
+		checkError(err)
+
 		for scanner.Scan() {
 			line := scanner.Text()
 			values := parseLogLine(logPattern, line)
@@ -107,11 +110,11 @@ func dbInit(dbPath string, logFiles ...string) {
 			for i, field := range fields {
 				queryValues[i] = values[field]
 			}
-			_, err := db.Exec(insertStmt, queryValues...)
+			_, err := insertStmt.Exec(queryValues...)
 			checkError(err)
 		}
 		checkError(scanner.Err())
-
+		checkError(tx.Commit())
 	}
 }
 
