@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"database/sql"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -32,12 +33,17 @@ func main() {
 		kong.Vars{"version": "ngtop v0.1.0"},
 	)
 
+	// optionally disable logger
+	// TODO control via an env var
+	log.Default().SetOutput(io.Discard)
+
 	// FIXME use a standard location by default
 	// FIXME allow override via cli arg or config
 	db := initDB("./ngtop.db")
 	defer db.Close()
 
 	loadLogs(db, cli.Paths...)
+	queryTop(db)
 
 	// err := ctx.Run()
 	// ctx.FatalIfErrorf(err)
@@ -78,10 +84,28 @@ func initDB(dbPath string) *sql.DB {
 	return db
 }
 
-func queryTop(db *sql.DB) *sql.Rows {
-	// rows, err := db.Query("SELECT ")
-	// checkError(err)
-	return nil
+func queryTop(db *sql.DB) {
+	// FIXME make this generic
+	rows, err := db.Query(`
+SELECT path, count(1)
+FROM access_logs
+WHERE time > datetime('now', '-1 hour')
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 10
+`)
+	checkError(err)
+	defer rows.Close()
+
+	// FIXME separate querying from presentation
+	fmt.Printf("%s\t%s\n", "path", "requests")
+	for rows.Next() {
+		var path string
+		var count int
+		rows.Scan(&path, &count)
+		fmt.Printf("%s\t%d\n", path, count)
+	}
+	checkError(rows.Err())
 }
 
 func loadLogs(db *sql.DB, logFiles ...string) {
