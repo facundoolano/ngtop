@@ -44,6 +44,9 @@ func dbInit(dbPath string, logFiles ...string) {
 	checkError(err)
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA journal_mode=memory;")
+	checkError(err)
+
 	sqlStmt := `
 		CREATE TABLE IF NOT EXISTS access_logs (
 			id 				INTEGER NOT NULL PRIMARY KEY,
