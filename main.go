@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"database/sql"
 	"fmt"
+	_ "github.com/mattn/go-sqlite3"
 	"io"
 	"log"
 	"net/url"
@@ -14,50 +15,37 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/alecthomas/kong"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // TODO add support to nginx config syntax, eg "$remote_addr - $remote_user [$time_local] ..."
 // and add code to translate it to these regexes
 const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)\] "(?P<request_raw>[^"]*)" (?P<status>\d{3}) (?P<bytes_sent>\d+) "(?P<referer>[^"]*)" "(?P<user_agent_raw>[^"]*)"`
 
-// TODO move to another file
-var cli struct {
-	Field string   `arg:"" optional:"" type:"columnNames" help:"TODO"`
-	Since string   `short:"s" default:"1h" type:"windowDate" help:"TODO"`
-	Until string   `short:"u" optional:"" type:"windowDate" help:"TODO"`
-	Limit int      `short:"l" default:"5" help:"TODO"`
-	Where []string `short:"w" optional:"" type:"wherePattern" help:"TODO"`
-
-	// FIXME this should be set by ENV instead of cli
-	Paths []string `arg:"" optional:"" name:"path" help:"Paths to log files to ingest." type:"path"`
-}
-
 func main() {
-	kong.Parse(
-		&cli,
-		kong.UsageOnError(),
-		kong.Vars{"version": "ngtop v0.1.0"},
-	)
+	// Optionally enable internal logger
+	if os.Getenv("NGTOP_LOG") == "" {
+		log.Default().SetOutput(io.Discard)
+	}
 
-	log.Print(cli)
-
-	// optionally disable logger
-	// TODO control via an env var
-	// log.Default().SetOutput(io.Discard)
-
-	// FIXME make overridable by env
-	// use https://pkg.go.dev/path/filepath#Glob
-	db := initDB("./ngtop.db")
+	dbPath := "./ngtop.db"
+	if envPath := os.Getenv("NGTOP_DB"); envPath != "" {
+		dbPath = envPath
+	}
+	db := initDB(dbPath)
 	defer db.Close()
 
-	loadLogs(db, cli.Paths...)
-	queryTop(db)
+	// defaulting to the default Debian location (and presumably other linuxes)
+	// could make sense to try detecting the OS and applying a sensible default accordingly
+	accessLogsPath := "/var/log/ngninx/access.log*"
+	if envLogsPath := os.Getenv("NGTOP_LOGS_PATH"); envLogsPath != "" {
+		accessLogsPath = envLogsPath
+	}
+	filePaths, err := filepath.Glob(accessLogsPath)
+	checkError(err)
+	loadLogs(db, filePaths...)
 
-	// err := ctx.Run()
-	// ctx.FatalIfErrorf(err)
+	spec := buildQuerySpec()
+	runTopQuery(db, spec)
 }
 
 func initDB(dbPath string) *sql.DB {
@@ -93,7 +81,7 @@ func initDB(dbPath string) *sql.DB {
 	return db
 }
 
-func queryTop(db *sql.DB) {
+func runTopQuery(db *sql.DB, spec QuerySpec) {
 	// FIXME make this generic
 	rows, err := db.Query(`
 SELECT path, count(1)
