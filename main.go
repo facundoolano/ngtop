@@ -19,28 +19,37 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// TODO support other formats
+// TODO add support to nginx config syntax, eg "$remote_addr - $remote_user [$time_local] ..."
+// and add code to translate it to these regexes
 const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)\] "(?P<request_raw>[^"]*)" (?P<status>\d{3}) (?P<bytes_sent>\d+) "(?P<referer>[^"]*)" "(?P<user_agent_raw>[^"]*)"`
 
-// TODO add arg to parse log files
+// TODO move to another file
 var cli struct {
-	Paths []string `arg:"" name:"path" help:"Paths to log files to ingest." type:"path"`
+	Field string   `arg:"" optional:"" type:"columnNames" help:"TODO"`
+	Since string   `short:"s" default:"1h" type:"windowDate" help:"TODO"`
+	Until string   `short:"u" optional:"" type:"windowDate" help:"TODO"`
+	Limit int      `short:"l" default:"5" help:"TODO"`
+	Where []string `short:"w" optional:"" type:"wherePattern" help:"TODO"`
+
+	// FIXME this should be set by ENV instead of cli
+	Paths []string `arg:"" optional:"" name:"path" help:"Paths to log files to ingest." type:"path"`
 }
 
 func main() {
 	kong.Parse(
 		&cli,
 		kong.UsageOnError(),
-		kong.HelpOptions{FlagsLast: true},
 		kong.Vars{"version": "ngtop v0.1.0"},
 	)
 
+	log.Print(cli)
+
 	// optionally disable logger
 	// TODO control via an env var
-	log.Default().SetOutput(io.Discard)
+	// log.Default().SetOutput(io.Discard)
 
-	// FIXME use a standard location by default
-	// FIXME allow override via cli arg or config
+	// FIXME make overridable by env
+	// use https://pkg.go.dev/path/filepath#Glob
 	db := initDB("./ngtop.db")
 	defer db.Close()
 
