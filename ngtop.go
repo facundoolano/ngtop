@@ -73,9 +73,7 @@ func initDB(dbPath string) *sql.DB {
 			path			TEXT,
 			user_agent	 	TEXT,
 
-			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-			UNIQUE(ip, time, request_raw) ON CONFLICT REPLACE
+			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 	`
 	_, err = db.Exec(sqlStmt)
@@ -104,7 +102,7 @@ LIMIT 10
 	for rows.Next() {
 		var path string
 		var count int
-		rows.Scan(&path, &count)
+		checkError(rows.Scan(&path, &count))
 		fmt.Printf("%s\t%d\n", path, count)
 	}
 	checkError(rows.Err())
@@ -112,8 +110,23 @@ LIMIT 10
 
 func loadLogs(db *sql.DB, logFiles ...string) {
 
-	// TODO figure out best approach to skip already loaded
-	// without missing logs from partial/errored/missed files
+	// we want to avoid processed files that were already processed in the past.  but we still want to add new log entries
+	// from the most recent files, which may have been extended since we last saw them.
+	// Since there is no "uniqueness" in logs (even the same ip can make the same request at the same second ---I checked),
+	// I remove the entries with the highest timestamp, and load everything up until including that timestamp but not older.
+	// The assumption is that any processing was completely finished, not interrupted.
+	// TODO: we may want to arrange the transactions to guarantee that assumption
+	var lastSeenTimeStr string
+	var lastSeenTime time.Time
+	isDiffLoad := false
+	if err := db.QueryRow("SELECT max(time) FROM access_logs").Scan(&lastSeenTimeStr); err == nil {
+		_, err := db.Exec("DELETE FROM access_logs WHERE time = ?", lastSeenTimeStr)
+		checkError(err)
+
+		isDiffLoad = true
+		lastSeenTime, err = timeFromDBFormat(lastSeenTimeStr)
+		checkError(err)
+	}
 
 	logPattern := regexp.MustCompile(LOG_COMBINED_PATTERN)
 	fields := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent"}
@@ -148,6 +161,12 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 				continue
 			}
 
+			if isDiffLoad && values["time"].(time.Time).Compare(lastSeenTime) < 0 {
+				// already caught up, no need to continue processing
+				checkError(tx.Commit())
+				return
+			}
+
 			queryValues := make([]interface{}, len(fields))
 			for i, field := range fields {
 				queryValues[i] = values[field]
@@ -175,10 +194,9 @@ func parseLogLine(pattern *regexp.Regexp, logLine string) map[string]interface{}
 	// assuming all the fields were found otherwise there would be no match above
 
 	// parse log time to time.Time
-	clfLayout := "02/Jan/2006:15:04:05 -0700"
-	time, err := time.Parse(clfLayout, result["time"].(string))
-	result["time"] = time
+	time, err := timeFromLogFormat(result["time"].(string))
 	checkError(err)
+	result["time"] = time
 
 	// bytes as integer
 	bytes_sent, _ := strconv.Atoi(result["bytes_sent"].(string))
@@ -204,6 +222,16 @@ func parseLogLine(pattern *regexp.Regexp, logLine string) map[string]interface{}
 	}
 
 	return result
+}
+
+func timeFromLogFormat(timestamp string) (time.Time, error) {
+	clfLayout := "02/Jan/2006:15:04:05 -0700"
+	return time.Parse(clfLayout, timestamp)
+}
+
+func timeFromDBFormat(timestamp string) (time.Time, error) {
+	sqliteLayout := "2006-01-02 15:04:05-07:00"
+	return time.Parse(sqliteLayout, timestamp)
 }
 
 // TODO think if this is reasonable enough for all cases
