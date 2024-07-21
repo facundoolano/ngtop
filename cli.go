@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/alecthomas/kong"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -14,16 +16,19 @@ var cli struct {
 	Where []string `short:"w" optional:"" type:"wherePattern" help:"TODO"`
 }
 
-// TODO add fields
-type QuerySpec struct {
-}
-
-func buildQuerySpec() QuerySpec {
+func buildQuerySpec() RequestCountQuery {
 	kong.Parse(
 		&cli,
 		kong.UsageOnError(),
 		kong.Vars{"version": "ngtop v0.1.0"},
 	)
-	// FIXME build spec
-	return QuerySpec{}
+	// FIXME build spec based on cli
+	now := time.Now()
+	hourAgo := now.Add(time.Duration(-24) * time.Hour)
+	return RequestCountQuery{
+		ColumnGroup: []string{"path"},
+		TimeSince:   hourAgo,
+		TimeUntil:   now,
+		Limit:       10,
+	}
 }

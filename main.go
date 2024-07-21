@@ -17,10 +17,6 @@ import (
 	"time"
 )
 
-// TODO add support to nginx config syntax, eg "$remote_addr - $remote_user [$time_local] ..."
-// and add code to translate it to these regexes
-const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)\] "(?P<request_raw>[^"]*)" (?P<status>\d{3}) (?P<bytes_sent>\d+) "(?P<referer>[^"]*)" "(?P<user_agent_raw>[^"]*)"`
-
 func main() {
 	// Optionally enable internal logger
 	if os.Getenv("NGTOP_LOG") == "" {
@@ -81,16 +77,8 @@ func initDB(dbPath string) *sql.DB {
 	return db
 }
 
-func runTopQuery(db *sql.DB, spec QuerySpec) {
-	// FIXME make this generic
-	rows, err := db.Query(`
-SELECT path, count(1)
-FROM access_logs
-WHERE time > datetime('now', '-1 month') AND status <> 301
-GROUP BY 1
-ORDER BY 2 DESC
-LIMIT 10
-`)
+func runTopQuery(db *sql.DB, query RequestCountQuery) {
+	rows, err := query.Exec(db)
 	checkError(err)
 	defer rows.Close()
 
@@ -104,6 +92,14 @@ LIMIT 10
 	}
 	checkError(rows.Err())
 }
+
+// TODO add support to nginx config syntax, eg "$remote_addr - $remote_user [$time_local] ..."
+// and add code to translate it to these regexes
+const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)\] "(?P<request_raw>[^"]*)" (?P<status>\d{3}) (?P<bytes_sent>\d+) "(?P<referer>[^"]*)" "(?P<user_agent_raw>[^"]*)"`
+
+var logPattern = regexp.MustCompile(LOG_COMBINED_PATTERN)
+var fields = []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent"}
+var valuePlaceholder = strings.TrimSuffix(strings.Repeat("?,", len(fields)), ",")
 
 func loadLogs(db *sql.DB, logFiles ...string) {
 
@@ -124,10 +120,6 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 		lastSeenTime, err = timeFromDBFormat(lastSeenTimeStr)
 		checkError(err)
 	}
-
-	logPattern := regexp.MustCompile(LOG_COMBINED_PATTERN)
-	fields := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent"}
-	valuePlaceholder := strings.TrimSuffix(strings.Repeat("?,", len(fields)), ",")
 
 	for _, path := range logFiles {
 
@@ -152,7 +144,7 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 
 		for scanner.Scan() {
 			line := scanner.Text()
-			values := parseLogLine(logPattern, line)
+			values := parseLogLine(line)
 			if values == nil {
 				log.Printf("couldn't parse line %s", line)
 				continue
@@ -176,13 +168,13 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 	}
 }
 
-func parseLogLine(pattern *regexp.Regexp, logLine string) map[string]interface{} {
-	match := pattern.FindStringSubmatch(logLine)
+func parseLogLine(logLine string) map[string]interface{} {
+	match := logPattern.FindStringSubmatch(logLine)
 	if match == nil {
 		return nil
 	}
 	result := make(map[string]interface{})
-	for i, name := range pattern.SubexpNames() {
+	for i, name := range logPattern.SubexpNames() {
 		if i != 0 && name != "" && match[i] != "-" {
 			result[name] = match[i]
 		}
