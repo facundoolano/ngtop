@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"database/sql"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
 	"io"
 	"log"
 	"net/url"
@@ -14,7 +13,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
@@ -77,19 +79,20 @@ func initDB(dbPath string) *sql.DB {
 	return db
 }
 
-func runTopQuery(db *sql.DB, query RequestCountQuery) {
+func runTopQuery(db *sql.DB, query RequestCountSpec) {
 	rows, err := query.Exec(db)
 	checkError(err)
 	defer rows.Close()
 
-	// FIXME separate querying from presentation
-	fmt.Printf("%s\t%s\n", "path", "requests")
+	tab := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
+	fmt.Fprintf(tab, "%s\t%s\n", "PATH", "REQUESTS")
 	for rows.Next() {
 		var path string
 		var count int
 		checkError(rows.Scan(&path, &count))
-		fmt.Printf("%s\t%d\n", path, count)
+		fmt.Fprintf(tab, "%s\t%d\n", path, count)
 	}
+	tab.Flush()
 	checkError(rows.Err())
 }
 
@@ -98,8 +101,8 @@ func runTopQuery(db *sql.DB, query RequestCountQuery) {
 const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)\] "(?P<request_raw>[^"]*)" (?P<status>\d{3}) (?P<bytes_sent>\d+) "(?P<referer>[^"]*)" "(?P<user_agent_raw>[^"]*)"`
 
 var logPattern = regexp.MustCompile(LOG_COMBINED_PATTERN)
-var fields = []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent"}
-var valuePlaceholder = strings.TrimSuffix(strings.Repeat("?,", len(fields)), ",")
+var insertFields = []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent"}
+var insertValuePlaceholder = strings.TrimSuffix(strings.Repeat("?,", len(insertFields)), ",")
 
 func loadLogs(db *sql.DB, logFiles ...string) {
 
@@ -137,12 +140,13 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 		}
 
 		scanner := bufio.NewScanner(reader)
+		// FIXME refactor into db file
 		tx, err := db.Begin()
 		checkError(err)
 		defer func() {
 			checkError(tx.Commit())
 		}()
-		insertStmt, err := tx.Prepare(fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(fields, ","), valuePlaceholder))
+		insertStmt, err := tx.Prepare(fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(insertFields, ","), insertValuePlaceholder))
 		checkError(err)
 
 		for scanner.Scan() {
@@ -158,8 +162,8 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 				return
 			}
 
-			queryValues := make([]interface{}, len(fields))
-			for i, field := range fields {
+			queryValues := make([]interface{}, len(insertFields))
+			for i, field := range insertFields {
 				queryValues[i] = values[field]
 			}
 			_, err := insertStmt.Exec(queryValues...)
@@ -169,6 +173,7 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 	}
 }
 
+// TODO this should be reader interface wrapping another reader
 func parseLogLine(logLine string) map[string]interface{} {
 	match := logPattern.FindStringSubmatch(logLine)
 	if match == nil {
@@ -219,6 +224,7 @@ func timeFromLogFormat(timestamp string) (time.Time, error) {
 	return time.Parse(clfLayout, timestamp)
 }
 
+// FIXME refactor into db file
 func timeFromDBFormat(timestamp string) (time.Time, error) {
 	sqliteLayout := "2006-01-02 15:04:05-07:00"
 	return time.Parse(sqliteLayout, timestamp)

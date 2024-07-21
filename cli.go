@@ -7,7 +7,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// TODO move to another file
+// TODO implement type mappers for proper parsing/validations
 var cli struct {
 	Field string   `arg:"" optional:"" type:"columnNames" help:"TODO"`
 	Since string   `short:"s" default:"1h" type:"windowDate" help:"TODO"`
@@ -16,7 +16,7 @@ var cli struct {
 	Where []string `short:"w" optional:"" type:"wherePattern" help:"TODO"`
 }
 
-func buildQuerySpec() RequestCountQuery {
+func buildQuerySpec() RequestCountSpec {
 	kong.Parse(
 		&cli,
 		kong.UsageOnError(),
@@ -25,10 +25,10 @@ func buildQuerySpec() RequestCountQuery {
 	// FIXME build spec based on cli
 	now := time.Now()
 	hourAgo := now.Add(time.Duration(-24) * time.Hour)
-	return RequestCountQuery{
-		ColumnGroup: []string{"path"},
-		TimeSince:   hourAgo,
-		TimeUntil:   now,
-		Limit:       10,
+	return RequestCountSpec{
+		GroupByMetrics: []string{"path"},
+		TimeSince:      hourAgo,
+		TimeUntil:      now,
+		Limit:          10,
 	}
 }

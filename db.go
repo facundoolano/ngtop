@@ -8,20 +8,21 @@ import (
 	"time"
 )
 
-// FIXME this should probably go to the db file
-type RequestCountQuery struct {
-	ColumnGroup []string
-	TimeSince   time.Time
-	TimeUntil   time.Time
-	Limit       int
-	Where       string
+// FIXME or in its own mod, and turn it into the "lingua franca" of the cli
+// eg. from cli, as sql, as table
+type RequestCountSpec struct {
+	GroupByMetrics []string
+	TimeSince      time.Time
+	TimeUntil      time.Time
+	Limit          int
+	Where          map[string]string
 }
 
-func (spec *RequestCountQuery) Exec(db *sql.DB) (*sql.Rows, error) {
-	columns := strings.Join(append(spec.ColumnGroup, "count(1)"), ",")
+func (spec *RequestCountSpec) Exec(db *sql.DB) (*sql.Rows, error) {
+	columns := strings.Join(append(spec.GroupByMetrics, "count(1)"), ",")
 	var groupBy string
-	if len(spec.ColumnGroup) > 0 {
-		groupBy = fmt.Sprintf("GROUP BY %s", strings.Join(spec.ColumnGroup, ","))
+	if len(spec.GroupByMetrics) > 0 {
+		groupBy = fmt.Sprintf("GROUP BY %s", strings.Join(spec.GroupByMetrics, ","))
 	}
 
 	// FIXME handle WHERE conditions
