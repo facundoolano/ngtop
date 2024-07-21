@@ -139,6 +139,9 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 		scanner := bufio.NewScanner(reader)
 		tx, err := db.Begin()
 		checkError(err)
+		defer func() {
+			checkError(tx.Commit())
+		}()
 		insertStmt, err := tx.Prepare(fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(fields, ","), valuePlaceholder))
 		checkError(err)
 
@@ -152,7 +155,6 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 
 			if isDiffLoad && values["time"].(time.Time).Compare(lastSeenTime) < 0 {
 				// already caught up, no need to continue processing
-				checkError(tx.Commit())
 				return
 			}
 
@@ -164,7 +166,6 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 			checkError(err)
 		}
 		checkError(scanner.Err())
-		checkError(tx.Commit())
 	}
 }
 
