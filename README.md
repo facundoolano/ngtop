@@ -27,10 +27,6 @@ Count requests from the day before:
     $ ngtop --since 2d --until 1d
     $ ngtop -s 2d -u 1d
 
-Count requests on a specific date range:
-
-    $ ngtop -s 2024-07-19 -u 2024-07-20
-
 Show the top 5 urls in the last hour:
 
     $ ngtop url
@@ -53,7 +49,7 @@ Count total requests to a specific url in the last hour:
 
 Count total requests to urls matching a pattern:
 
-	$ ngtop -w url=/blog/*
+	$ ngtop -w url=/blog/%
 
 Count total requests to one of mutliple urls (one OR another):
 
@@ -65,7 +61,7 @@ Count total requests to a specific urls AND referer:
 
 Show the top visited urls matching a pattern:
 
-	$ ngtop url -w url=/blog/*
+	$ ngtop url -w url=/blog/%
 
 Show the top requesting ips:
 
@@ -82,20 +78,20 @@ Show the top user agents by url:
 
 Show the top urls by user agent pattern:
 
-    $ ngtop url -w ua=Mozilla/*
-    $ ngtop url -w ua=*iPhone*
+    $ ngtop url -w ua=Mozilla/%
+    $ ngtop url -w ua=%iPhone%
 
 Show the top referers for a url pattern:
 
-    $ ngtop referer -w url=/blog/*
+    $ ngtop referer -w url=/blog/%
 
 Show the top user agent and referer combination
 
-    $ ngtop ua,referer
+    $ ngtop ua referer
 
 Show the top user agent and referer combination for a specific url
 
-    $ ngtop ua,referer -w url=/blog/code-is-run-more-than-read
+    $ ngtop ua referer -w url=/blog/code-is-run-more-than-read
 
 Count total 404 status responses:
 
@@ -103,7 +99,7 @@ Count total 404 status responses:
 
 Count total 404 error responses:
 
-    $ ngtop -w status=4* - status=5*
+    $ ngtop -w status=4% - status=5%
 
 ## Configuration
 

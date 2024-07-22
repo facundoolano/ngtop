@@ -26,8 +26,13 @@ func (spec *RequestCountSpec) Exec(db *sql.DB) (*sql.Rows, error) {
 		whereExpression += "AND ("
 
 		for i, value := range values {
-			whereExpression += "? = ?"
-			queryArgs = append(queryArgs, column, value)
+			whereExpression += column
+			if strings.ContainsRune(value, '%') {
+				whereExpression += " LIKE ?"
+			} else {
+				whereExpression += " = ?"
+			}
+			queryArgs = append(queryArgs, value)
 			if i < len(values)-1 {
 				whereExpression += " OR "
 			}
