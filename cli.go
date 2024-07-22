@@ -1,21 +1,22 @@
 package main
 
 import (
-	"reflect"
-	"strings"
+	"fmt"
+	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/alecthomas/kong"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// TODO implement type mappers for proper parsing/validations
+// FIXME move this to main
 var cli struct {
-	Field []string `arg:"" optional:"" type:"columnNames" help:"TODO"`
-	Since string   `short:"s" default:"1h" type:"windowDate" help:"TODO"`
-	Until string   `short:"u" optional:"" type:"windowDate" help:"TODO"`
-	Limit int      `short:"l" default:"5" help:"TODO"`
-	Where []string `short:"w" optional:"" type:"wherePattern" help:"TODO"`
+	Fields []string            `arg:"" optional:"" help:"TODO"`
+	Since  string              `short:"s" default:"1h" help:"TODO"`
+	Until  string              `short:"u" default:"now"  help:"TODO"`
+	Limit  int                 `short:"l" default:"5" help:"TODO"`
+	Where  map[string][]string `short:"w" optional:"" help:"TODO"`
 }
 
 func buildQuerySpec() RequestCountSpec {
@@ -25,31 +26,44 @@ func buildQuerySpec() RequestCountSpec {
 		kong.Vars{"version": "ngtop v0.1.0"},
 	)
 
-	kong.NamedMapper("columnNames", columsMapper{})
-
-	// FIXME build spec based on cli
-	now := time.Now()
-	hourAgo := now.Add(time.Duration(-24) * time.Hour)
-
-	// FIXME these structs seem redundant
+	since, err := parseDuration(cli.Since)
+	checkError(err)
+	until, err := parseDuration(cli.Until)
+	checkError(err)
 	return RequestCountSpec{
-		GroupByMetrics: cli.Field,
-		TimeSince:      hourAgo,
-		TimeUntil:      now,
+		GroupByMetrics: cli.Fields,
+		TimeSince:      since,
+		TimeUntil:      until,
 		Limit:          cli.Limit,
+		Where:          cli.Where,
 	}
 }
 
-// TODO explain
-type columsMapper struct {
-	text string
-}
+func parseDuration(duration string) (time.Time, error) {
+	t := time.Now()
+	if duration != "now" {
+		re := regexp.MustCompile(`^(\d+)([smhdM])$`)
+		matches := re.FindStringSubmatch(duration)
+		if len(matches) != 3 {
+			return t, fmt.Errorf("invalid duration %s", duration)
+		}
+		number, err := strconv.Atoi(matches[1])
+		if err != nil {
+			return t, fmt.Errorf("invalid duration %s", duration)
+		}
 
-func (t columsMapper) Decode(ctx *kong.DecodeContext, target reflect.Value) error {
-	columns := strings.Split(t.text, ",")
-	// TODO trim values
-	// TODO verify known field
-	// TODO apply aliases
-	target.Set(reflect.ValueOf(columns))
-	return nil
+		switch matches[2] {
+		case "s":
+			t = t.Add(-time.Duration(number) * time.Second)
+		case "m":
+			t = t.Add(-time.Duration(number) * time.Minute)
+		case "h":
+			t = t.Add(-time.Duration(number) * time.Hour)
+		case "d":
+			t = t.Add(-time.Duration(number) * time.Hour * 24)
+		case "M":
+			t = t.Add(-time.Duration(number) * time.Hour * 24 * 30)
+		}
+	}
+	return t, nil
 }
