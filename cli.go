@@ -12,7 +12,7 @@ import (
 
 // FIXME move this to main
 var cli struct {
-	Fields []string            `arg:"" optional:"" help:"TODO"`
+	Fields []string            `arg:"" optional:"" enum:"ip,url,path,request,bytes,ua,user_agent,useragent,method,status,referer" help:"TODO"`
 	Since  string              `short:"s" default:"1h" help:"TODO"`
 	Until  string              `short:"u" default:"now"  help:"TODO"`
 	Limit  int                 `short:"l" default:"5" help:"TODO"`
@@ -30,13 +30,36 @@ func buildQuerySpec() RequestCountSpec {
 	checkError(err)
 	until, err := parseDuration(cli.Until)
 	checkError(err)
+
+	columns := make([]string, len(cli.Fields))
+	for i, field := range cli.Fields {
+		columns[i] = resolveColumn(field)
+	}
+
 	return RequestCountSpec{
-		GroupByMetrics: cli.Fields,
+		GroupByMetrics: columns,
 		TimeSince:      since,
 		TimeUntil:      until,
 		Limit:          cli.Limit,
 		Where:          cli.Where,
 	}
+}
+
+func resolveColumn(column string) string {
+	switch column {
+	// FIXME should prefer parsed user_agent when that's available
+	case "user_agent":
+	case "useragent":
+	case "ua":
+		return "user_agent_raw"
+	case "request":
+		return "request_raw"
+	case "bytes":
+		return "bytes_sent"
+	case "url":
+		return "path"
+	}
+	return column
 }
 
 func parseDuration(duration string) (time.Time, error) {
