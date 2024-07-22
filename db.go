@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-// FIXME or in its own mod, and turn it into the "lingua franca" of the cli
-// eg. from cli, as sql, as table
 type RequestCountSpec struct {
 	GroupByMetrics []string
 	TimeSince      time.Time
@@ -18,42 +16,50 @@ type RequestCountSpec struct {
 	Where          map[string][]string
 }
 
+// FIXME separate query building from execution
 func (spec *RequestCountSpec) Exec(db *sql.DB) (*sql.Rows, error) {
-	// FIXME separate query building from execution
-	// FIXME accumulate values and use ? instead of hardcoding
+	queryArgs := []any{}
+
+	whereExpression := "WHERE time > ? AND time < ? "
+	queryArgs = append(queryArgs, spec.TimeSince, spec.TimeUntil)
+	for column, values := range spec.Where {
+		whereExpression += "AND ("
+
+		for i, value := range values {
+			whereExpression += "? = ?"
+			queryArgs = append(queryArgs, column, value)
+			if i < len(values)-1 {
+				whereExpression += " OR "
+			}
+		}
+		whereExpression += ") "
+	}
 
 	columns := strings.Join(append(spec.GroupByMetrics, "count(1) '#reqs'"), ",")
 	var groupByExpression string
 	if len(spec.GroupByMetrics) > 0 {
-		groupByExpression = fmt.Sprintf("GROUP BY %s", strings.Join(spec.GroupByMetrics, ","))
-	}
-
-	whereConditions := make([]string, 0)
-	for column, values := range spec.Where {
-		columnConditions := make([]string, len(values))
-		for i, value := range values {
-			columnConditions[i] = fmt.Sprintf("%s=%s", column, value)
+		groupByExpression = "GROUP BY"
+		for i := range len(spec.GroupByMetrics) {
+			groupByExpression += fmt.Sprintf(" %d", i+1)
+			if i < len(spec.GroupByMetrics)-1 {
+				groupByExpression += ","
+			}
 		}
-		whereConditions = append(whereConditions, fmt.Sprintf("(%s)", strings.Join(columnConditions, " OR ")))
-	}
-
-	var whereExpression string
-	if len(whereConditions) > 0 {
-		whereExpression = " AND " + strings.Join(whereConditions, " AND ")
 	}
 
 	// FIXME handle WHERE conditions
-	queryString := fmt.Sprintf(`SELECT %s FROM access_logs
-WHERE time > ? AND time < ? AND status <> 304 %s %s
-ORDER BY count(1) DESC
-LIMIT %d
-`, columns, whereExpression, groupByExpression, spec.Limit)
+	queryString := fmt.Sprintf(
+		"SELECT %s FROM access_logs %s %s ORDER BY count(1) DESC LIMIT %d",
+		columns,
+		whereExpression,
+		groupByExpression,
+		spec.Limit, // the limit clause can't be "?"
+	)
 
-	log.Printf("query: %s\n", queryString)
+	log.Printf("query: %s %s\n", queryString, queryArgs)
 
 	return db.Query(
 		queryString,
-		spec.TimeSince,
-		spec.TimeUntil,
+		queryArgs...,
 	)
 }
