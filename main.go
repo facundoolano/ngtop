@@ -42,7 +42,7 @@ func main() {
 	checkError(err)
 	loadLogs(db, filePaths...)
 
-	spec := buildQuerySpec()
+	spec := querySpecFromCLI()
 	runTopQuery(db, spec)
 }
 

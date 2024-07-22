@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -12,14 +13,29 @@ import (
 
 // FIXME move this to main
 var cli struct {
-	Fields []string            `arg:"" optional:"" enum:"ip,url,path,request,bytes,ua,user_agent,useragent,method,status,referer" help:"TODO"`
-	Since  string              `short:"s" default:"1h" help:"TODO"`
-	Until  string              `short:"u" default:"now"  help:"TODO"`
-	Limit  int                 `short:"l" default:"5" help:"TODO"`
-	Where  map[string][]string `short:"w" optional:"" help:"TODO"`
+	Fields []string `arg:"" optional:"" help:"TODO"`
+	Since  string   `short:"s" default:"1h" help:"TODO"`
+	Until  string   `short:"u" default:"now"  help:"TODO"`
+	Limit  int      `short:"l" default:"5" help:"TODO"`
+	Where  []string `short:"w" optional:"" help:"TODO"`
 }
 
-func buildQuerySpec() RequestCountSpec {
+var FIELD_NAMES = map[string]string{
+	"user_agent": "user_agent_raw",
+	"useragent":  "user_agent_raw",
+	"ua":         "user_agent_raw",
+	"request":    "request_raw",
+	"bytes":      "bytes_sent",
+	"bytes_sent": "bytes_sent",
+	"path":       "path",
+	"url":        "path",
+	"ip":         "ip",
+	"referer":    "referer",
+	"status":     "status",
+	"method":     "method",
+}
+
+func querySpecFromCLI() RequestCountSpec {
 	kong.Parse(
 		&cli,
 		kong.UsageOnError(),
@@ -33,33 +49,43 @@ func buildQuerySpec() RequestCountSpec {
 
 	columns := make([]string, len(cli.Fields))
 	for i, field := range cli.Fields {
-		columns[i] = resolveColumn(field)
+		if value, found := FIELD_NAMES[field]; !found {
+			// FIXME return error instead
+			checkError(fmt.Errorf("unknown field name %s", field))
+		} else {
+			columns[i] = value
+		}
 	}
 
+	whereConditions, err := resolveWhereConditions(cli.Where)
+	checkError(err)
 	return RequestCountSpec{
 		GroupByMetrics: columns,
 		TimeSince:      since,
 		TimeUntil:      until,
 		Limit:          cli.Limit,
-		Where:          cli.Where,
+		Where:          whereConditions,
 	}
 }
 
-func resolveColumn(column string) string {
-	switch column {
-	// FIXME should prefer parsed user_agent when that's available
-	case "user_agent":
-	case "useragent":
-	case "ua":
-		return "user_agent_raw"
-	case "request":
-		return "request_raw"
-	case "bytes":
-		return "bytes_sent"
-	case "url":
-		return "path"
+func resolveWhereConditions(clauses []string) (map[string][]string, error) {
+	conditions := make(map[string][]string)
+
+	for _, clause := range clauses {
+		keyvalue := strings.Split(clause, "=")
+		if len(keyvalue) != 2 {
+			return nil, fmt.Errorf("invalid where expression %s", clause)
+		}
+		if column, found := FIELD_NAMES[keyvalue[0]]; !found {
+			return nil, fmt.Errorf("unknown field name %s", keyvalue[0])
+		} else if _, found := conditions[column]; found {
+			conditions[column] = append(conditions[column], keyvalue[1])
+		} else {
+			conditions[column] = []string{keyvalue[1]}
+		}
 	}
-	return column
+
+	return conditions, nil
 }
 
 func parseDuration(duration string) (time.Time, error) {
