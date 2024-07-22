@@ -89,7 +89,7 @@ func resolveWhereConditions(clauses []string) (map[string][]string, error) {
 }
 
 func parseDuration(duration string) (time.Time, error) {
-	t := time.Now()
+	t := time.Now().UTC()
 	if duration != "now" {
 		re := regexp.MustCompile(`^(\d+)([smhdM])$`)
 		matches := re.FindStringSubmatch(duration)
