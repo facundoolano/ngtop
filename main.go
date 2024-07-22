@@ -135,6 +135,15 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 		checkError(err)
 	}
 
+	// have a single transaction for all the insert
+	tx, err := db.Begin()
+	checkError(err)
+	defer func() {
+		checkError(tx.Commit())
+	}()
+	insertStmt, err := tx.Prepare(fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(insertFields, ","), insertValuePlaceholder))
+	checkError(err)
+
 	for _, path := range logFiles {
 
 		log.Printf("parsing %s", path)
@@ -151,15 +160,6 @@ func loadLogs(db *sql.DB, logFiles ...string) {
 		}
 
 		scanner := bufio.NewScanner(reader)
-		// FIXME refactor into db file
-		tx, err := db.Begin()
-		checkError(err)
-		defer func() {
-			checkError(tx.Commit())
-		}()
-		insertStmt, err := tx.Prepare(fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(insertFields, ","), insertValuePlaceholder))
-		checkError(err)
-
 		for scanner.Scan() {
 			line := scanner.Text()
 			values := parseLogLine(line)
