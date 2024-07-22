@@ -29,6 +29,6 @@ func buildQuerySpec() RequestCountSpec {
 		GroupByMetrics: []string{"path"},
 		TimeSince:      hourAgo,
 		TimeUntil:      now,
-		Limit:          10,
+		Limit:          cli.Limit,
 	}
 }

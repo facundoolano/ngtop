@@ -15,7 +15,7 @@ type RequestCountSpec struct {
 	TimeSince      time.Time
 	TimeUntil      time.Time
 	Limit          int
-	Where          map[string]string
+	Where          map[string][]string
 }
 
 func (spec *RequestCountSpec) Exec(db *sql.DB) (*sql.Rows, error) {
