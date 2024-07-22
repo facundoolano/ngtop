@@ -85,12 +85,23 @@ func runTopQuery(db *sql.DB, query RequestCountSpec) {
 	defer rows.Close()
 
 	tab := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
-	fmt.Fprintf(tab, "%s\t%s\n", "PATH", "REQUESTS")
+
+	// FIXME this code is a mess
+	columns, err := rows.Columns()
+	checkError(err)
+	values := make([]interface{}, len(columns))
+	strValues := make([]string, len(columns))
+	for i := range len(columns) {
+		values[i] = new(sql.RawBytes)
+	}
+
+	fmt.Fprintf(tab, "%s\n", strings.ToUpper(strings.Join(columns, "\t")))
 	for rows.Next() {
-		var path string
-		var count int
-		checkError(rows.Scan(&path, &count))
-		fmt.Fprintf(tab, "%s\t%d\n", path, count)
+		checkError(rows.Scan(values...))
+		for i, value := range values {
+			strValues[i] = fmt.Sprintf("%s", *value.(*sql.RawBytes))
+		}
+		fmt.Fprintf(tab, "%s\n", strings.Join(strValues, "\t"))
 	}
 	tab.Flush()
 	checkError(rows.Err())

@@ -19,7 +19,7 @@ type RequestCountSpec struct {
 }
 
 func (spec *RequestCountSpec) Exec(db *sql.DB) (*sql.Rows, error) {
-	columns := strings.Join(append(spec.GroupByMetrics, "count(1)"), ",")
+	columns := strings.Join(append(spec.GroupByMetrics, "count(1) '#reqs'"), ",")
 	var groupBy string
 	if len(spec.GroupByMetrics) > 0 {
 		groupBy = fmt.Sprintf("GROUP BY %s", strings.Join(spec.GroupByMetrics, ","))
