@@ -1,0 +1,33 @@
+name: Upload release binaries
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Build Binaries
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+
+    - name: Build Binary
+      run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o ngtop-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} .
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: "ngtop-*"
