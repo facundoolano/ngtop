@@ -117,7 +117,7 @@ func parseLogLine(logLine string) (map[string]interface{}, error) {
 		result["user_agent"] = ua.Name
 		result["os"] = ua.OS
 		result["device"] = ua.Device
-		result["ua_url"] = ua.URL
+		result["ua_url"] = strings.TrimPrefix(ua.URL, "https://")
 		if ua.Bot {
 			result["ua_type"] = "bot"
 		} else if ua.Tablet {
@@ -127,6 +127,10 @@ func parseLogLine(logLine string) (map[string]interface{}, error) {
 		} else if ua.Desktop {
 			result["ua_type"] = "desktop"
 		}
+	}
+
+	if referer, found := result["referer"]; found {
+		result["referer"] = strings.TrimPrefix(referer.(string), "https://")
 	}
 
 	request_parts := strings.Split(result["request_raw"].(string), " ")
