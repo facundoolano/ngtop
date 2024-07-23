@@ -24,7 +24,7 @@ type dbSession struct {
 	insertStmt *sql.Stmt
 }
 
-// TODO
+// TODO doc
 func InitDB() (*dbSession, error) {
 	dbPath := "./ngtop.db"
 	if envPath := os.Getenv("NGTOP_DB"); envPath != "" {
@@ -195,7 +195,6 @@ func (spec *RequestCountSpec) buildQuery() (string, []any) {
 		}
 	}
 
-	// FIXME handle WHERE conditions
 	queryString := fmt.Sprintf(
 		"SELECT %s FROM access_logs %s %s ORDER BY count(1) DESC LIMIT %d",
 		columns,

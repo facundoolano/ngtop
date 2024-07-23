@@ -156,7 +156,6 @@ func parseDuration(duration string) (time.Time, error) {
 	return t, nil
 }
 
-// TODO move db parts to db, keep tab formating/printing in main
 func printTopTable(columnNames []string, rowValues [][]string) {
 	tab := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
 	fmt.Fprintf(tab, "%s\n", strings.ToUpper(strings.Join(columnNames, "\t")))
