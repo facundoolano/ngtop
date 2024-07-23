@@ -91,7 +91,7 @@ func (dbs *dbSession) PrepareForUpdate(columns []string) (*time.Time, error) {
 			return nil, err
 		}
 
-		t, err := timeFromDBFormat(lastSeenTimeStr)
+		t, _ := timeFromDBFormat(lastSeenTimeStr)
 		lastSeemTime = &t
 	}
 
@@ -154,7 +154,7 @@ func (dbs *dbSession) QueryTop(spec *RequestCountSpec) ([]string, [][]string, er
 		}
 		strValues := make([]string, len(values))
 		for i, value := range values {
-			strValues[i] = fmt.Sprintf("%s", *value.(*sql.RawBytes))
+			strValues[i] = string(*value.(*sql.RawBytes))
 		}
 		results = append(results, strValues)
 	}

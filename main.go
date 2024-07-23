@@ -115,10 +115,8 @@ func resolveWhereConditions(clauses []string) (map[string][]string, error) {
 		}
 		if column, found := FIELD_NAMES[keyvalue[0]]; !found {
 			return nil, fmt.Errorf("unknown field name %s", keyvalue[0])
-		} else if _, found := conditions[column]; found {
-			conditions[column] = append(conditions[column], keyvalue[1])
 		} else {
-			conditions[column] = []string{keyvalue[1]}
+			conditions[column] = append(conditions[column], keyvalue[1])
 		}
 	}
 
