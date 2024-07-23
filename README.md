@@ -118,12 +118,25 @@ Count total 404 error responses:
 
 ## How it works
 
-TODO
+- Whenever the program is run, it looks for the nginx access.logs, parses them and stores the data into an SQLite DB.
+  - By default, the logs are looked up at `/var/log/nginx/access.log*`, which can be overridden with the `NGTOP_LOGS_PATH` environment variable.
+  - At the moment, the logs are assumed to have the [nginx combined log format](https://nginx.org/en/docs/http/ngx_http_log_module.html#log_format), but this could eventually be made customizable.
+  - Subsequent runs of the program only parse and store the logs up until the time of the previous run.
+  - The SQLite DB is stored at `./ngtop.db`, which can be overridden with the `NGTOP_DB` environment variable.
+- The command line arguments express a filtering criteria, used to build the SQL query that counts the requests.
+  - For instance, the command `ngtop url -w url=/blog/%` produces:
+    ```sql
+    SELECT path,count(1) '#reqs' FROM access_logs
+    WHERE time > ? AND time < ? AND (path LIKE ?)
+    GROUP BY 1
+    ORDER BY count(1)
+    DESC LIMIT 5
+    ```
 
 ## Configuration
 
 The command-line arguments and flags are intended exclusively to express a requests count query. The configuration, which isn't expected to change across command invocations, is left to environment variables:
 
-- `NGTOP_LOGS_PATH`: path pattern to find the nginx access logs. Defaults to `"/var/log/nginx/access.log*"`. The pattern is expanded using Go's [`path/filepath.Glob`](https://pkg.go.dev/path/filepath#Glob).
+- `NGTOP_LOGS_PATH`: path pattern to find the nginx access logs. Defaults to `/var/log/nginx/access.log*`. The pattern is expanded using Go's [`path/filepath.Glob`](https://pkg.go.dev/path/filepath#Glob).
 - `NGTOP_LOG`: when set, internal logs will be printed to standard output.
 - `NGTOP_DB`: location of the SQLite db where the parsed logs are stored. Defaults to `./ngtop.db`.
