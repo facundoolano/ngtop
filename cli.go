@@ -36,29 +36,29 @@ var FIELD_NAMES = map[string]string{
 }
 
 func querySpecFromCLI() RequestCountSpec {
-	kong.Parse(
+	ctx := kong.Parse(
 		&cli,
 		kong.UsageOnError(),
 		kong.Vars{"version": "ngtop v0.1.0"},
 	)
 
 	since, err := parseDuration(cli.Since)
-	checkError(err)
+	ctx.FatalIfErrorf(err)
 	until, err := parseDuration(cli.Until)
-	checkError(err)
+	ctx.FatalIfErrorf(err)
 
 	columns := make([]string, len(cli.Fields))
 	for i, field := range cli.Fields {
 		if value, found := FIELD_NAMES[field]; !found {
 			// FIXME return error instead
-			checkError(fmt.Errorf("unknown field name %s", field))
+			ctx.FatalIfErrorf(fmt.Errorf("unknown field name %s", field))
 		} else {
 			columns[i] = value
 		}
 	}
 
 	whereConditions, err := resolveWhereConditions(cli.Where)
-	checkError(err)
+	ctx.FatalIfErrorf(err)
 	return RequestCountSpec{
 		GroupByMetrics: columns,
 		TimeSince:      since,
