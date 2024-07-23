@@ -16,7 +16,7 @@ jobs:
         goarch: [amd64, arm64]
         include:
           - goarch: amd64
-            cc: cc
+            cc: gcc
           - goarch: arm64
             cc: aarch64-linux-gnu
 
