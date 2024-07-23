@@ -1,8 +1,16 @@
 # ngtop
 
-TODO what is ntop
+ngtop is a command-line program to query request counts from nginx's access.log files.
 
-TODO screenshot with fancy output
+```
+$ ngtop url user_agent --since 1d --where url=/blog/% --where status=200 --limit 5
+PATH                                             USER_AGENT     #REQS
+/blog/deconstructing-the-role-playing-videogame/ Safari         120
+/blog/on-ai-assistance/                          Go-http-client 101
+/blog/a-note-on-essential-complexity/            Safari         91
+/blog/deconstructing-the-role-playing-videogame/ Chrome         84
+/blog/from-rss-to-my-kindle/                     Safari         79
+```
 
 ## Installation
 
@@ -101,6 +109,10 @@ Count total 404 error responses:
 
     $ ngtop -w status=4% -status=5%
 
+## How it works
+
+TODO
+
 ## Configuration
 
 The command-line arguments and flags are intended exclusively to express a requests count query. The configuration, which isn't expected to change across command invocations, is left to environment variables:
@@ -108,8 +120,3 @@ The command-line arguments and flags are intended exclusively to express a reque
 - `NGTOP_LOGS_PATH`: path pattern to find the nginx access logs. Defaults to `"/var/log/ngninx/access.log*"`. The pattern is expanded using Go's [`path/filepath.Glob`](https://pkg.go.dev/path/filepath#Glob).
 - `NGTOP_LOG`: when set, internal logs will be printed to standard output.
 - `NGTOP_DB`: location of the SQLite db where the parsed logs are stored. Defaults to `./ngtop.db`.
-
-
-## How it works
-
-TODO
