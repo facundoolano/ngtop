@@ -56,6 +56,11 @@ func InitDB() (*dbSession, error) {
 			method			TEXT,
 			path			TEXT,
 			user_agent	 	TEXT,
+			os			 	TEXT,
+			device		 	TEXT,
+			ua_url		 	TEXT,
+			ua_type		 	TEXT,
+
 
 			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);

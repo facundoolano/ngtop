@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"compress/gzip"
+	"github.com/mileusna/useragent"
 	"io"
 	"log"
 	"net/url"
@@ -111,8 +112,22 @@ func parseLogLine(logLine string) (map[string]interface{}, error) {
 	status, _ := strconv.Atoi(result["status"].(string))
 	result["status"] = status
 
-	// FIXME normalize user agent
-	result["user_agent"] = result["user_agent_raw"]
+	if ua, found := result["user_agent_raw"]; found {
+		ua := useragent.Parse(ua.(string))
+		result["user_agent"] = ua.Name
+		result["os"] = ua.OS
+		result["device"] = ua.Device
+		result["ua_url"] = ua.URL
+		if ua.Bot {
+			result["ua_type"] = "bot"
+		} else if ua.Tablet {
+			result["ua_type"] = "tablet"
+		} else if ua.Mobile {
+			result["ua_type"] = "mobile"
+		} else if ua.Desktop {
+			result["ua_type"] = "desktop"
+		}
+	}
 
 	request_parts := strings.Split(result["request_raw"].(string), " ")
 	if len(request_parts) == 3 {

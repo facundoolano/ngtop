@@ -26,9 +26,15 @@ type CommandArgs struct {
 
 // FIXME consolidate field list (duplicated knowledge)
 var FIELD_NAMES = map[string]string{
-	"user_agent": "user_agent_raw",
-	"useragent":  "user_agent_raw",
-	"ua":         "user_agent_raw",
+	"user_agent": "user_agent",
+	"useragent":  "user_agent",
+	"ua":         "user_agent",
+	"ua_type":    "ua_type",
+	"uatype":     "ua_type",
+	"ua_url":     "ua_url",
+	"uaurl":      "ua_url",
+	"os":         "os",
+	"device":     "device",
 	"request":    "request_raw",
 	"bytes":      "bytes_sent",
 	"bytes_sent": "bytes_sent",
@@ -162,7 +168,7 @@ func printTopTable(columnNames []string, rowValues [][]string) {
 
 func loadLogs(dbs *dbSession) error {
 	// FIXME consolidate field list (duplicated knowledge)
-	insertFields := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent"}
+	insertFields := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent", "os", "device", "ua_url", "ua_type"}
 	lastSeenTime, err := dbs.PrepareForUpdate(insertFields)
 	if err != nil {
 		return err
