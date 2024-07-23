@@ -17,7 +17,7 @@ import (
 
 // defaulting to the default Debian location (and presumably other linuxes)
 // overridable with NGTOP_LOGS_PATH env var
-const DEFAULT_PATH = "/var/log/ngninx/access.log*"
+const DEFAULT_PATH = "/var/log/nginx/access.log*"
 
 // TODO add support to nginx config syntax, eg "$remote_addr - $remote_user [$time_local] ..." and add code to translate it to these regexes
 // FIXME consolidate field list (duplicated knowledge)
