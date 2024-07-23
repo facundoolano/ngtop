@@ -14,7 +14,14 @@ PATH                                             USER_AGENT     #REQS
 
 ## Installation
 
-TODO
+Download the [latest release binary](https://github.com/facundoolano/ngtop/releases/latest) for your platform, for example:
+
+    $ wget https://github.com/facundoolano/ngtop/releases/latest/download/ngtop-darwin-arm64  \
+        -O ngtop && chmod +x ngtop && mv ngtop /usr/local/bin
+
+Alternatively, install with go:
+
+    $ go install github.com/facundoolano/ngtop@latest
 
 ## Usage examples
 
