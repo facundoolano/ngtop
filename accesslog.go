@@ -117,7 +117,7 @@ func parseLogLine(logLine string) (map[string]interface{}, error) {
 		result["user_agent"] = ua.Name
 		result["os"] = ua.OS
 		result["device"] = ua.Device
-		result["ua_url"] = strings.TrimPrefix(ua.URL, "https://")
+		result["ua_url"] = stripUrlSource(ua.URL)
 		if ua.Bot {
 			result["ua_type"] = "bot"
 		} else if ua.Tablet {
@@ -129,8 +129,9 @@ func parseLogLine(logLine string) (map[string]interface{}, error) {
 		}
 	}
 
-	if referer, found := result["referer"]; found {
-		result["referer"] = strings.TrimPrefix(referer.(string), "https://")
+	referer, hasReferer := result["referer"]
+	if hasReferer {
+		result["referer"] = stripUrlSource(referer.(string))
 	}
 
 	request_parts := strings.Split(result["request_raw"].(string), " ")
@@ -140,12 +141,33 @@ func parseLogLine(logLine string) (map[string]interface{}, error) {
 		raw_path := request_parts[1]
 		if url, err := url.Parse(raw_path); err == nil {
 			result["path"] = url.Path
+
+			// if utm source and friends in query, use them as referer
+			if !hasReferer {
+				keys := []string{"ref", "referer", "referrer", "utm_source"}
+				query := url.Query()
+				for _, key := range keys {
+					if query.Has(key) {
+						result["referer"] = stripUrlSource(query.Get(key))
+						break
+					}
+				}
+			}
+
 		} else {
 			result["path"] = raw_path
 		}
 	}
 
 	return result, nil
+}
+
+func stripUrlSource(value string) string {
+	value = strings.TrimPrefix(value, "http://")
+	value = strings.TrimPrefix(value, "https://")
+	value = strings.TrimPrefix(value, "www.")
+	value = strings.TrimSuffix(value, "/")
+	return value
 }
 
 func timeFromLogFormat(timestamp string) (time.Time, error) {
