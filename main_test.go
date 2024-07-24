@@ -122,11 +122,11 @@ func TestWhereFilter(t *testing.T) {
 	assertEqual(t, rows[1][1], "1")
 	assertEqual(t, rows[2][1], "1")
 
-	columns, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=301", "-l", "10"})
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=301", "-l", "10"})
 	assertEqual(t, len(rows), 5)
-	columns, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "method=GET"})
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "method=GET"})
 	assertEqual(t, len(rows), 5)
-	columns, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "method=get"})
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "method=get"})
 	assertEqual(t, len(rows), 5)
 }
 
@@ -208,13 +208,6 @@ func TestMain(m *testing.M) {
 	}
 
 	m.Run()
-}
-
-func assert(t *testing.T, cond bool) {
-	t.Helper()
-	if !cond {
-		t.Fatalf("condition is false")
-	}
 }
 
 func assertEqual(t *testing.T, a interface{}, b interface{}) {
