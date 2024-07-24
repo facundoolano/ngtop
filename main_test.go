@@ -201,6 +201,8 @@ func runCommand(t *testing.T, logs string, cliArgs []string) ([]string, [][]stri
 }
 
 func TestMain(m *testing.M) {
+	// override the time.Now function to make the since/until durations simpler to calculate
+	// from the sample log dates
 	NowTimeFun = func() time.Time {
 		return time.Date(2024, time.July, 24, 0, 7, 0, 0, time.UTC)
 	}
