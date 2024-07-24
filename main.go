@@ -54,6 +54,21 @@ func main() {
 		log.Default().SetOutput(io.Discard)
 	}
 
+	ctx, spec := querySpecFromCLI()
+
+	dbs, err := InitDB()
+	ctx.FatalIfErrorf(err)
+	defer dbs.Close()
+
+	err = loadLogs(dbs)
+	ctx.FatalIfErrorf(err)
+
+	columnNames, rowValues, err := dbs.QueryTop(spec)
+	ctx.FatalIfErrorf(err)
+	printTopTable(columnNames, rowValues)
+}
+
+func querySpecFromCLI() (*kong.Context, *RequestCountSpec) {
 	// Parse query spec first, i.e. don't bother with db updates if the command is invalid
 	fieldNames := make([]string, 0, len(FIELD_NAMES))
 	for k := range FIELD_NAMES {
@@ -70,30 +85,11 @@ func main() {
 			"fields":  strings.Join(fieldNames, ","),
 		},
 	)
-	spec, err := querySpecFromCLI(&cli)
-	ctx.FatalIfErrorf(err)
 
-	dbs, err := InitDB()
-	ctx.FatalIfErrorf(err)
-	defer dbs.Close()
-
-	err = loadLogs(dbs)
-	ctx.FatalIfErrorf(err)
-
-	columnNames, rowValues, err := dbs.QueryTop(spec)
-	ctx.FatalIfErrorf(err)
-	printTopTable(columnNames, rowValues)
-}
-
-func querySpecFromCLI(cli *CommandArgs) (*RequestCountSpec, error) {
 	since, err := parseDuration(cli.Since)
-	if err != nil {
-		return nil, err
-	}
+	ctx.FatalIfErrorf(err)
 	until, err := parseDuration(cli.Until)
-	if err != nil {
-		return nil, err
-	}
+	ctx.FatalIfErrorf(err)
 
 	// translate field name aliases
 	columns := make([]string, len(cli.Fields))
@@ -102,16 +98,16 @@ func querySpecFromCLI(cli *CommandArgs) (*RequestCountSpec, error) {
 	}
 
 	whereConditions, err := resolveWhereConditions(cli.Where)
-	if err != nil {
-		return nil, err
-	}
-	return &RequestCountSpec{
+	ctx.FatalIfErrorf(err)
+
+	spec := &RequestCountSpec{
 		GroupByMetrics: columns,
 		TimeSince:      since,
 		TimeUntil:      until,
 		Limit:          cli.Limit,
 		Where:          whereConditions,
-	}, nil
+	}
+	return ctx, spec
 }
 
 func resolveWhereConditions(clauses []string) (map[string][]string, error) {

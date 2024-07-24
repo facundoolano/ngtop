@@ -3,11 +3,8 @@ package main
 import (
 	"os"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
-
-	"github.com/alecthomas/kong"
 )
 
 func TestFieldsParsing(t *testing.T) {
@@ -150,22 +147,9 @@ func runCommand(t *testing.T, logs string, cliArgs []string) ([]string, [][]stri
 	defer os.Remove(f.Name())
 	t.Setenv("NGTOP_DB", f.Name())
 
-	// FIXME this duplicates a lot of main, perhaps we can refactor to unify the path
-	cli := CommandArgs{}
-	fieldNames := make([]string, 0, len(FIELD_NAMES))
-	for k := range FIELD_NAMES {
-		fieldNames = append(fieldNames, k)
-	}
-	parser, err := kong.New(&cli, kong.Vars{
-		"version": "ngtop v0.1.0",
-		"fields":  strings.Join(fieldNames, ","),
-	})
-	assertEqual(t, err, nil)
-	_, err = parser.Parse(cliArgs)
-	assertEqual(t, err, nil)
-
-	spec, err := querySpecFromCLI(&cli)
-	assertEqual(t, err, nil)
+	// some duplication from main here, maybe can refactored away
+	os.Args = append([]string{"ngtop"}, cliArgs...)
+	_, spec := querySpecFromCLI()
 
 	dbs, err := InitDB()
 	assertEqual(t, err, nil)
