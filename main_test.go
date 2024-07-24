@@ -147,7 +147,17 @@ func TestWhereMultipleValues(t *testing.T) {
 }
 
 func TestWherePattern(t *testing.T) {
+	_, rows := runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "url=/feed%"})
+	assertEqual(t, len(rows), 2)
 
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "url=/blog/%"})
+	assertEqual(t, len(rows), 5)
+
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=3%"})
+	assertEqual(t, len(rows), 5)
+
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=2%"})
+	assertEqual(t, len(rows), 3)
 }
 
 func TestMultipleLogFiles(t *testing.T) {
