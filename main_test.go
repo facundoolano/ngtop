@@ -57,32 +57,22 @@ func TestBasicQuery(t *testing.T) {
 }
 
 func TestDateFiltering(t *testing.T) {
-	// TODO fix to use sample logs
-	logs := `xx.xx.xx.xx - - [24/Jul/2024:00:00:28 +0000] "GET /feed HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
-xx.xx.xx.xx - - [24/Jul/2024:00:00:30 +0000] "GET /feed HTTP/1.1" 301 169 "-" "feedi/0.1.0 (+https://github.com/facundoolano/feedi)"
-xx.xx.xx.xx - - [24/Jul/2024:00:00:56 +0000] "GET /blog/deconstructing-the-role-playing-videogame/ HTTP/1.1" 200 14224 "-" "feedi/0.1.0 (+https://github.com/facundoolano/feedi)"
-xx.xx.xx.xx - - [24/Jul/2024:00:02:17 +0000] "GET / HTTP/1.1" 200 1120 "https://olano.dev/" "SimplePie/1.8.0 (Feed Parser; http://simplepie.org; Allow like Gecko) Build/1674203855"
-xx.xx.xx.xx - - [24/Jul/2024:00:04:49 +0000] "GET /blog/mi-descubrimiento-de-america HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.126 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
-xx.xx.xx.xx - - [24/Jul/2024:00:06:41 +0000] "GET /blog/a-few-more-things-you-can-do-on-your-website HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9"
-xx.xx.xx.xx - - [24/Jul/2024:00:06:41 +0000] "GET /blog/a-note-on-essential-complexity HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9"
-xx.xx.xx.xx - - [24/Jul/2024:00:06:41 +0000] "GET /blog/posdata-de-borges-y-bioy HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9"`
+	_, rows := runCommand(t, SAMPLE_LOGS, []string{})
+	assertEqual(t, rows[0][0], "11")
 
-	_, rows := runCommand(t, logs, []string{})
-	assertEqual(t, rows[0][0], "8")
-
-	_, rows = runCommand(t, logs, []string{"-s", "1m"})
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"-s", "1m"})
 	assertEqual(t, rows[0][0], "3")
 
-	_, rows = runCommand(t, logs, []string{"-u", "1m"})
-	assertEqual(t, rows[0][0], "5")
-
-	_, rows = runCommand(t, logs, []string{"-s", "4m", "-u", "1m"})
-	assertEqual(t, rows[0][0], "1")
-
-	_, rows = runCommand(t, logs, []string{"-s", "1h"})
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"-u", "1m"})
 	assertEqual(t, rows[0][0], "8")
 
-	_, rows = runCommand(t, logs, []string{"-u", "1h"})
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"-s", "4m", "-u", "1m"})
+	assertEqual(t, rows[0][0], "1")
+
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"-s", "1h"})
+	assertEqual(t, rows[0][0], "11")
+
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"-u", "1h"})
 	assertEqual(t, rows[0][0], "0")
 }
 
@@ -183,7 +173,7 @@ func runCommand(t *testing.T, logs string, cliArgs []string) ([]string, [][]stri
 	f, err = os.CreateTemp("", "ngtop.db")
 	assertEqual(t, err, nil)
 	defer os.Remove(f.Name())
-	t.Setenv("NGTOP_DB", f.Name())
+	os.Setenv("NGTOP_DB", f.Name())
 
 	// some duplication from main here, maybe can refactored away
 	os.Args = append([]string{"ngtop"}, cliArgs...)
