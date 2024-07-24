@@ -15,11 +15,11 @@ import (
 )
 
 type CommandArgs struct {
-	Fields []string `arg:"" optional:"" enum:"${fields}" help:"Dimensions to aggregate the results by. Allowed values are: ${fields} "`
-	Since  string   `short:"s" default:"1h" help:"TODO"`
-	Until  string   `short:"u" default:"now"  help:"TODO"`
-	Limit  int      `short:"l" default:"5" help:"TODO"`
-	Where  []string `short:"w" optional:"" help:"TODO"`
+	Fields []string `arg:"" name:"field" optional:"" enum:"${fields}" help:"Dimensions to aggregate the results. Allowed values: ${fields} "`
+	Since  string   `short:"s" default:"1h" help:"Start of the time window to filter logs. Supported units are [s]econds, [m]inutes, [h]ours, [d]ays, [M]onths"`
+	Until  string   `short:"u" default:"now"  help:"End of the time window to filter logs. Supported units are [s]econds, [m]inutes, [h]ours, [d]ays, [M]onths"`
+	Limit  int      `short:"l" default:"5" help:"Amount of results to return"`
+	Where  []string `short:"w" optional:"" help:"Filter expressions. Example: -w useragent=Safari -w status=200"`
 }
 
 // FIXME consolidate field list (duplicated knowledge)
@@ -60,6 +60,7 @@ func main() {
 	cli := CommandArgs{}
 	ctx := kong.Parse(
 		&cli,
+		kong.Description("ngtop prints request counts from nginx access.logs based on a command-line query"),
 		kong.UsageOnError(),
 		kong.Vars{
 			"version": "ngtop v0.1.0",
