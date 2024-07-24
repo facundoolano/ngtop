@@ -8,15 +8,25 @@ import (
 )
 
 func TestFieldsParsing(t *testing.T) {
-
+	// include aliases
+	// include fail on unknown field
+	// include duplicated
+	// include duplicated because of alias
 }
 
 func TestDurationParsing(t *testing.T) {
-
+	// default to now
+	// support each unit s, m, h, d, M
+	// fail on unknown unit
+	// fail on bad syntax
 }
 
 func TestWhereConditionParsing(t *testing.T) {
-
+	// include bad syntax
+	// include spaces in syntax?
+	// include pattern
+	// include multi values of same field
+	// include error on unknown field
 }
 
 func TestBasicQuery(t *testing.T) {
@@ -138,7 +148,31 @@ xx.xx.xx.xx - - [24/Jul/2024:00:06:41 +0000] "GET /blog/posdata-de-borges-y-bioy
 }
 
 func TestWhereFilter(t *testing.T) {
+	logs := `xx.xx.xx.xx - - [24/Jul/2024:00:00:28 +0000] "GET /feed HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+xx.xx.xx.xx - - [24/Jul/2024:00:00:30 +0000] "GET /feed HTTP/1.1" 301 169 "-" "feedi/0.1.0 (+https://github.com/facundoolano/feedi)"
+xx.xx.xx.xx - - [24/Jul/2024:00:00:56 +0000] "GET /blog/deconstructing-the-role-playing-videogame/ HTTP/1.1" 200 14224 "-" "feedi/0.1.0 (+https://github.com/facundoolano/feedi)"
+xx.xx.xx.xx - - [24/Jul/2024:00:01:18 +0000] "GET /feed.xml HTTP/1.1" 200 9641 "https://olano.dev/feed.xml" "FreshRSS/1.24.0 (Linux; https://freshrss.org)"
+xx.xx.xx.xx - - [24/Jul/2024:00:01:20 +0000] "GET /feed.xml HTTP/1.1" 200 9641 "https://olano.dev/feed.xml" "FreshRSS/1.24.0 (Linux; https://freshrss.org)"
+xx.xx.xx.xx - - [24/Jul/2024:00:01:51 +0000] "GET /feed.xml HTTP/1.1" 200 9641 "https://olano.dev/feed.xml" "FreshRSS/1.24.0 (Linux; https://freshrss.org)"
+xx.xx.xx.xx - - [24/Jul/2024:00:02:17 +0000] "GET / HTTP/1.1" 200 1120 "https://olano.dev/" "SimplePie/1.8.0 (Feed Parser; http://simplepie.org; Allow like Gecko) Build/1674203855"
+xx.xx.xx.xx - - [24/Jul/2024:00:04:49 +0000] "GET /blog/mi-descubrimiento-de-america HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.126 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+xx.xx.xx.xx - - [24/Jul/2024:00:06:41 +0000] "GET /blog/a-few-more-things-you-can-do-on-your-website HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9"
+xx.xx.xx.xx - - [24/Jul/2024:00:06:41 +0000] "GET /blog/a-note-on-essential-complexity HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9"
+xx.xx.xx.xx - - [24/Jul/2024:00:06:41 +0000] "GET /blog/posdata-de-borges-y-bioy HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9"`
 
+	columns, rows := runCommand(t, logs, []string{"url", "-w", "status=200"})
+	assertEqual(t, columns, []string{"path", "#reqs"})
+	assertEqual(t, len(rows), 3)
+	assertEqual(t, rows[0], []string{"/feed.xml", "3"})
+	assertEqual(t, rows[1][1], "1")
+	assertEqual(t, rows[2][1], "1")
+
+	columns, rows = runCommand(t, logs, []string{"url", "-w", "status=301", "-l", "10"})
+	assertEqual(t, len(rows), 5)
+	columns, rows = runCommand(t, logs, []string{"url", "-w", "method=GET"})
+	assertEqual(t, len(rows), 5)
+	columns, rows = runCommand(t, logs, []string{"url", "-w", "method=get"})
+	assertEqual(t, len(rows), 5)
 }
 
 func TestWhereMultipleValues(t *testing.T) {
@@ -157,12 +191,9 @@ func TestStatusFilter(t *testing.T) {
 
 }
 
-func TestCaseInsensitive(t *testing.T) {
-
-}
-
 func TestMultipleLogFiles(t *testing.T) {
-
+	// more than one file in a dir, honoring the glob pattern
+	// include gzipped value
 }
 
 //
