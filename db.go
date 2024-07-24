@@ -49,18 +49,18 @@ func InitDB() (*dbSession, error) {
 			ip				TEXT,
 			time 			TIMESTAMP NOT NULL,
 			request_raw		TEXT NOT NULL,
+			user_agent_raw 	TEXT,
 			status			INTEGER,
 			bytes_sent		INTEGER,
-			referer 		TEXT,
-			user_agent_raw 	TEXT,
+			referer 		TEXT COLLATE NOCASE,
 
-			method			TEXT,
+			method			TEXT COLLATE NOCASE,
 			path			TEXT,
-			user_agent	 	TEXT,
-			os			 	TEXT,
-			device		 	TEXT,
+			user_agent	 	TEXT COLLATE NOCASE,
+			os			 	TEXT COLLATE NOCASE,
+			device		 	TEXT COLLATE NOCASE,
 			ua_url		 	TEXT,
-			ua_type		 	TEXT,
+			ua_type		 	TEXT COLLATE NOCASE,
 
 
 			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
