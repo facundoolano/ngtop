@@ -45,12 +45,30 @@ var FIELD_NAMES = map[string]string{
 	"method":     "method",
 }
 
+// Use a var to get current time, allowing for tests to override it
+var NowTimeFun = time.Now
+
 func main() {
 	// Optionally enable internal logger
 	if os.Getenv("NGTOP_LOG") == "" {
 		log.Default().SetOutput(io.Discard)
 	}
 
+	ctx, spec := querySpecFromCLI()
+
+	dbs, err := InitDB()
+	ctx.FatalIfErrorf(err)
+	defer dbs.Close()
+
+	err = loadLogs(dbs)
+	ctx.FatalIfErrorf(err)
+
+	columnNames, rowValues, err := dbs.QueryTop(spec)
+	ctx.FatalIfErrorf(err)
+	printTopTable(columnNames, rowValues)
+}
+
+func querySpecFromCLI() (*kong.Context, *RequestCountSpec) {
 	// Parse query spec first, i.e. don't bother with db updates if the command is invalid
 	fieldNames := make([]string, 0, len(FIELD_NAMES))
 	for k := range FIELD_NAMES {
@@ -67,30 +85,11 @@ func main() {
 			"fields":  strings.Join(fieldNames, ","),
 		},
 	)
-	spec, err := querySpecFromCLI(&cli)
-	ctx.FatalIfErrorf(err)
 
-	dbs, err := InitDB()
-	ctx.FatalIfErrorf(err)
-	defer dbs.Close()
-
-	err = loadLogs(dbs)
-	ctx.FatalIfErrorf(err)
-
-	columnNames, rowValues, err := dbs.QueryTop(spec)
-	ctx.FatalIfErrorf(err)
-	printTopTable(columnNames, rowValues)
-}
-
-func querySpecFromCLI(cli *CommandArgs) (*RequestCountSpec, error) {
 	since, err := parseDuration(cli.Since)
-	if err != nil {
-		return nil, err
-	}
+	ctx.FatalIfErrorf(err)
 	until, err := parseDuration(cli.Until)
-	if err != nil {
-		return nil, err
-	}
+	ctx.FatalIfErrorf(err)
 
 	// translate field name aliases
 	columns := make([]string, len(cli.Fields))
@@ -99,16 +98,16 @@ func querySpecFromCLI(cli *CommandArgs) (*RequestCountSpec, error) {
 	}
 
 	whereConditions, err := resolveWhereConditions(cli.Where)
-	if err != nil {
-		return nil, err
-	}
-	return &RequestCountSpec{
+	ctx.FatalIfErrorf(err)
+
+	spec := &RequestCountSpec{
 		GroupByMetrics: columns,
 		TimeSince:      since,
 		TimeUntil:      until,
 		Limit:          cli.Limit,
 		Where:          whereConditions,
-	}, nil
+	}
+	return ctx, spec
 }
 
 func resolveWhereConditions(clauses []string) (map[string][]string, error) {
@@ -130,7 +129,7 @@ func resolveWhereConditions(clauses []string) (map[string][]string, error) {
 }
 
 func parseDuration(duration string) (time.Time, error) {
-	t := time.Now().UTC()
+	t := NowTimeFun().UTC()
 	if duration != "now" {
 		re := regexp.MustCompile(`^(\d+)([smhdM])$`)
 		matches := re.FindStringSubmatch(duration)
@@ -170,6 +169,8 @@ func printTopTable(columnNames []string, rowValues [][]string) {
 func loadLogs(dbs *dbSession) error {
 	// FIXME consolidate field list (duplicated knowledge)
 	insertFields := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent", "os", "device", "ua_url", "ua_type"}
+
+	// FIXME this API could be improved, why not a single call?
 	lastSeenTime, err := dbs.PrepareForUpdate(insertFields)
 	if err != nil {
 		return err
