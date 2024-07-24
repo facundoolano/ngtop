@@ -141,22 +141,27 @@ func TestWhereFilter(t *testing.T) {
 }
 
 func TestWhereMultipleValues(t *testing.T) {
+	_, rows := runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=200", "-w", "status=301"})
+	assertEqual(t, len(rows), 5)
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=200", "-w", "status=301", "-l", "10"})
+	assertEqual(t, len(rows), 8)
 
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "ua=feedi"})
+	assertEqual(t, len(rows), 2)
+
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "ua=feedi", "-w", "status=200"})
+	assertEqual(t, len(rows), 1)
+
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "ua=feedi", "-w", "status=200", "-w", "status=301"})
+	assertEqual(t, len(rows), 2)
 }
 
 func TestWherePattern(t *testing.T) {
 
 }
 
-func TestUserAgentFields(t *testing.T) {
-
-}
-
-func TestStatusFilter(t *testing.T) {
-
-}
-
 func TestMultipleLogFiles(t *testing.T) {
+	// TODO
 	// more than one file in a dir, honoring the glob pattern
 	// include gzipped value
 }
