@@ -91,10 +91,12 @@ Show the top user agents by url:
     $ ngtop user_agent -w url=/blog/code-is-run-more-than-read
     $ ngtop ua -w url=/blog/code-is-run-more-than-read
 
-Show the top urls by user agent pattern:
+Show the top urls by user agent details (parsed with [mileusna/useagent](https://pkg.go.dev/github.com/mileusna/useragent)):
 
-    $ ngtop url -w ua=Mozilla/%
-    $ ngtop url -w ua=%iPhone%
+    $ ngtop url -w ua=Firefox
+    $ ngtop url -w ua_type=bot
+    $ ngtop url -w device=iPhone
+    $ ngtop url -w os=Linux
 
 Show the top referers for a url pattern:
 
@@ -112,9 +114,9 @@ Count total 404 status responses:
 
     $ ngtop -w status=404
 
-Count total 404 error responses:
+Count non successful responses:
 
-    $ ngtop -w status=4% -status=5%
+    $ ngtop status -w status=4% -status=5%
 
 ## How it works
 
