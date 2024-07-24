@@ -15,7 +15,7 @@ import (
 )
 
 type CommandArgs struct {
-	Fields []string `arg:"" optional:"" help:"TODO"`
+	Fields []string `arg:"" optional:"" enum:"${fields}" help:"Dimensions to aggregate the results by. Allowed values are: ${fields} "`
 	Since  string   `short:"s" default:"1h" help:"TODO"`
 	Until  string   `short:"u" default:"now"  help:"TODO"`
 	Limit  int      `short:"l" default:"5" help:"TODO"`
@@ -52,11 +52,19 @@ func main() {
 	}
 
 	// Parse query spec first, i.e. don't bother with db updates if the command is invalid
+	fieldNames := make([]string, 0, len(FIELD_NAMES))
+	for k := range FIELD_NAMES {
+		fieldNames = append(fieldNames, k)
+	}
+
 	cli := CommandArgs{}
 	ctx := kong.Parse(
 		&cli,
 		kong.UsageOnError(),
-		kong.Vars{"version": "ngtop v0.1.0"},
+		kong.Vars{
+			"version": "ngtop v0.1.0",
+			"fields":  strings.Join(fieldNames, ","),
+		},
 	)
 	spec, err := querySpecFromCLI(&cli)
 	ctx.FatalIfErrorf(err)
@@ -83,13 +91,10 @@ func querySpecFromCLI(cli *CommandArgs) (*RequestCountSpec, error) {
 		return nil, err
 	}
 
+	// translate field name aliases
 	columns := make([]string, len(cli.Fields))
 	for i, field := range cli.Fields {
-		if value, found := FIELD_NAMES[field]; !found {
-			return nil, fmt.Errorf("unknown field name %s", field)
-		} else {
-			columns[i] = value
-		}
+		columns[i] = FIELD_NAMES[field]
 	}
 
 	whereConditions, err := resolveWhereConditions(cli.Where)
