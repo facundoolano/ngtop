@@ -53,6 +53,7 @@ var NowTimeFun = time.Now
 // defaulting to the default Debian location (and presumably other linuxes)
 // overridable with NGTOP_LOGS_PATH env var
 const DEFAULT_PATH_PATTERN = "/var/log/nginx/access.log*"
+const DEFAULT_DB_PATH = "./ngtop.db"
 
 func main() {
 	// Optionally enable internal logger
@@ -60,7 +61,7 @@ func main() {
 		log.Default().SetOutput(io.Discard)
 	}
 
-	dbPath := "./ngtop.db"
+	dbPath := DEFAULT_DB_PATH
 	if envPath := os.Getenv("NGTOP_DB"); envPath != "" {
 		dbPath = envPath
 	}
