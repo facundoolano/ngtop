@@ -76,12 +76,13 @@ func TestWhereConditionParsing(t *testing.T) {
 	var cond map[string][]string
 	var err error
 
-	cond, err = resolveWhereConditions([]string{"url=/blog", "useragent=Safari", "ua=Firefox", "referer=olano%"})
+	cond, err = resolveWhereConditions([]string{"url=/blog", "useragent=Safari", "ua=Firefox", "referer=olano%", "os!=Windows"})
 	assertEqual(t, err, nil)
 	assertEqual(t, cond, map[string][]string{
 		"path":       {"/blog"},
 		"user_agent": {"Safari", "Firefox"},
 		"referer":    {"olano%"},
+		"os":         {"!Windows"},
 	})
 
 	// include error on unknown field
@@ -221,6 +222,20 @@ func TestWherePattern(t *testing.T) {
 	assertEqual(t, len(rows), 5)
 
 	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=2%"})
+	assertEqual(t, len(rows), 3)
+}
+
+func TestWhereNegation(t *testing.T) {
+	_, rows := runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status!=200", "-l", "10"})
+	assertEqual(t, len(rows), 5)
+
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status!=301", "-l", "10"})
+	assertEqual(t, len(rows), 3)
+
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status!=2%", "-l", "10"})
+	assertEqual(t, len(rows), 5)
+
+	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status!=3%", "-l", "10"})
 	assertEqual(t, len(rows), 3)
 }
 

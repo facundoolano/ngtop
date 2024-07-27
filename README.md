@@ -66,6 +66,11 @@ Count total requests to urls matching a pattern:
 
 	$ ngtop -w url=/blog/%
 
+Count total requests to urls excluding a value or pattern:
+
+	$ ngtop -w url!=/feed.xml
+	$ ngtop -w url!=/feed%
+
 Count total requests to one of mutliple urls (one OR another):
 
 	$ ngtop -w url=/blog/code-is-run-more-than-read -w url=/blog/a-note-on-essential-complexity

@@ -114,10 +114,14 @@ func resolveWhereConditions(clauses []string) (map[string][]string, error) {
 	conditions := make(map[string][]string)
 
 	for _, clause := range clauses {
+		// for non equal conditions, leave a trailing '!' in the value
+		clause = strings.Replace(clause, "!=", "=!", 1)
+
 		keyvalue := strings.Split(clause, "=")
 		if len(keyvalue) != 2 {
 			return nil, fmt.Errorf("invalid where expression %s", clause)
 		}
+
 		if column, found := FIELD_NAMES[keyvalue[0]]; !found {
 			return nil, fmt.Errorf("unknown field name %s", keyvalue[0])
 		} else {

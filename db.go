@@ -172,9 +172,19 @@ func (spec *RequestCountSpec) buildQuery() (string, []any) {
 		for i, value := range values {
 			whereExpression += column
 			if strings.ContainsRune(value, '%') {
-				whereExpression += " LIKE ?"
+				if strings.HasPrefix(value, "!") {
+					value = strings.TrimPrefix(value, "!")
+					whereExpression += " NOT LIKE ?"
+				} else {
+					whereExpression += " LIKE ?"
+				}
 			} else {
-				whereExpression += " = ?"
+				if strings.HasPrefix(value, "!") {
+					value = strings.TrimPrefix(value, "!")
+					whereExpression += " <> ?"
+				} else {
+					whereExpression += " = ?"
+				}
 			}
 			queryArgs = append(queryArgs, value)
 			if i < len(values)-1 {
