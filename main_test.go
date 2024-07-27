@@ -55,10 +55,10 @@ func TestDurationParsing(t *testing.T) {
 	assertEqual(t, nil, err)
 	assertEqual(t, duration, time.Date(2024, time.July, 19, 0, 7, 0, 0, time.UTC))
 
-	duration, err = parseDuration("1w")
+	_, err = parseDuration("1w")
 	assertEqual(t, nil, err)
 	assertEqual(t, duration, time.Date(2024, time.July, 17, 0, 7, 0, 0, time.UTC))
-	duration, err = parseDuration("2w")
+	_, err = parseDuration("2w")
 	assertEqual(t, nil, err)
 	assertEqual(t, duration, time.Date(2024, time.July, 10, 0, 7, 0, 0, time.UTC))
 
