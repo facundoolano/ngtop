@@ -55,10 +55,10 @@ func TestDurationParsing(t *testing.T) {
 	assertEqual(t, nil, err)
 	assertEqual(t, duration, time.Date(2024, time.July, 19, 0, 7, 0, 0, time.UTC))
 
-	_, err = parseDuration("1w")
+	duration, err = parseDuration("1w")
 	assertEqual(t, nil, err)
 	assertEqual(t, duration, time.Date(2024, time.July, 17, 0, 7, 0, 0, time.UTC))
-	_, err = parseDuration("2w")
+	duration, err = parseDuration("2w")
 	assertEqual(t, nil, err)
 	assertEqual(t, duration, time.Date(2024, time.July, 10, 0, 7, 0, 0, time.UTC))
 
@@ -71,11 +71,11 @@ func TestDurationParsing(t *testing.T) {
 	assertEqual(t, duration, time.Date(2024, time.May, 25, 0, 7, 0, 0, time.UTC))
 
 	// fail on unknown unit
-	duration, err = parseDuration("1x")
+	_, err = parseDuration("1x")
 	assert(t, err != nil)
 
 	// fail on bad syntax
-	duration, err = parseDuration("asdassd")
+	_, err = parseDuration("asdassd")
 	assert(t, err != nil)
 }
 
