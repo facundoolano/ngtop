@@ -7,13 +7,6 @@ import (
 	"time"
 )
 
-func TestFieldsParsing(t *testing.T) {
-	// include aliases
-	// include fail on unknown field
-	// include duplicated
-	// include duplicated because of alias
-}
-
 func TestDurationParsing(t *testing.T) {
 	var duration time.Time
 	var err error
@@ -80,11 +73,24 @@ func TestDurationParsing(t *testing.T) {
 }
 
 func TestWhereConditionParsing(t *testing.T) {
-	// include bad syntax
-	// include spaces in syntax?
-	// include pattern
-	// include multi values of same field
+	var cond map[string][]string
+	var err error
+
+	cond, err = resolveWhereConditions([]string{"url=/blog", "useragent=Safari", "ua=Firefox", "referer=olano%"})
+	assertEqual(t, err, nil)
+	assertEqual(t, cond, map[string][]string{
+		"path":       {"/blog"},
+		"user_agent": {"Safari", "Firefox"},
+		"referer":    {"olano%"},
+	})
+
 	// include error on unknown field
+	_, err = resolveWhereConditions([]string{"pepe=/blog"})
+	assert(t, err != nil)
+
+	// include bad syntax
+	_, err = resolveWhereConditions([]string{"url"})
+	assert(t, err != nil)
 }
 
 const SAMPLE_LOGS = `xx.xx.xx.xx - - [24/Jul/2024:00:00:28 +0000] "GET /feed HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
