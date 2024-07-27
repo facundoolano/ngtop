@@ -25,12 +25,8 @@ type dbSession struct {
 	insertStmt *sql.Stmt
 }
 
-// TODO doc
-func InitDB() (*dbSession, error) {
-	dbPath := "./ngtop.db"
-	if envPath := os.Getenv("NGTOP_DB"); envPath != "" {
-		dbPath = envPath
-	}
+// Open or create the database at the given path.
+func InitDB(dbPath string) (*dbSession, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, err

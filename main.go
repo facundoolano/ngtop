@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -49,19 +50,32 @@ var FIELD_NAMES = map[string]string{
 // Use a var to get current time, allowing for tests to override it
 var NowTimeFun = time.Now
 
+// defaulting to the default Debian location (and presumably other linuxes)
+// overridable with NGTOP_LOGS_PATH env var
+const DEFAULT_PATH_PATTERN = "/var/log/nginx/access.log*"
+
 func main() {
 	// Optionally enable internal logger
 	if os.Getenv("NGTOP_LOG") == "" {
 		log.Default().SetOutput(io.Discard)
 	}
 
-	ctx, spec := querySpecFromCLI()
+	dbPath := "./ngtop.db"
+	if envPath := os.Getenv("NGTOP_DB"); envPath != "" {
+		dbPath = envPath
+	}
 
-	dbs, err := InitDB()
+	logPathPattern := DEFAULT_PATH_PATTERN
+	if envLogsPath := os.Getenv("NGTOP_LOGS_PATH"); envLogsPath != "" {
+		logPathPattern = envLogsPath
+	}
+
+	ctx, spec := querySpecFromCLI()
+	dbs, err := InitDB(dbPath)
 	ctx.FatalIfErrorf(err)
 	defer dbs.Close()
 
-	err = loadLogs(dbs)
+	err = loadLogs(dbs, logPathPattern)
 	ctx.FatalIfErrorf(err)
 
 	columnNames, rowValues, err := dbs.QueryTop(spec)
@@ -172,7 +186,12 @@ func parseDuration(duration string) (time.Time, error) {
 }
 
 // Parse the most recent nginx access.logs and insert the ones not previously seen into the DB.
-func loadLogs(dbs *dbSession) error {
+func loadLogs(dbs *dbSession, logPathPattern string) error {
+	logFiles, err := filepath.Glob(logPathPattern)
+	if err != nil {
+		return err
+	}
+
 	// FIXME consolidate field list (duplicated knowledge)
 	dbColumns := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent", "os", "device", "ua_url", "ua_type"}
 
@@ -181,7 +200,7 @@ func loadLogs(dbs *dbSession) error {
 		return err
 	}
 
-	err = ProcessAccessLogs(lastSeenTime, func(logLineFields map[string]interface{}) error {
+	err = ProcessAccessLogs(logFiles, lastSeenTime, func(logLineFields map[string]interface{}) error {
 		queryValues := make([]interface{}, len(dbColumns))
 		for i, field := range dbColumns {
 			queryValues[i] = logLineFields[field]

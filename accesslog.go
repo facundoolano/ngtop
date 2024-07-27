@@ -15,10 +15,6 @@ import (
 	"time"
 )
 
-// defaulting to the default Debian location (and presumably other linuxes)
-// overridable with NGTOP_LOGS_PATH env var
-const DEFAULT_PATH = "/var/log/nginx/access.log*"
-
 // TODO add support to nginx config syntax, eg "$remote_addr - $remote_user [$time_local] ..." and add code to translate it to these regexes
 // FIXME consolidate field list (duplicated knowledge)
 const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)\] "(?P<request_raw>[^"]*)" (?P<status>\d{3}) (?P<bytes_sent>\d+) "(?P<referer>[^"]*)" "(?P<user_agent_raw>[^"]*)"`
@@ -27,18 +23,7 @@ var logPattern = regexp.MustCompile(LOG_COMBINED_PATTERN)
 
 // Parse the fields in the nginx access logs since the `until` time, passing them as a map into the `processFun`.
 // Processing is interrupted when a log older than `until` is found.
-func ProcessAccessLogs(until *time.Time, processFun func(map[string]interface{}) error) error {
-
-	// could make sense to try detecting the OS and applying a sensible default accordingly
-	accessLogsPath := DEFAULT_PATH
-	if envLogsPath := os.Getenv("NGTOP_LOGS_PATH"); envLogsPath != "" {
-		accessLogsPath = envLogsPath
-	}
-	logFiles, err := filepath.Glob(accessLogsPath)
-	if err != nil {
-		return err
-	}
-
+func ProcessAccessLogs(logFiles []string, until *time.Time, processFun func(map[string]interface{}) error) error {
 	for _, path := range logFiles {
 
 		log.Printf("parsing %s", path)
