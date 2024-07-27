@@ -25,6 +25,8 @@ const LOG_COMBINED_PATTERN = `(?P<ip>\S+) - (?P<remote_user>\S+) \[(?P<time>.*?)
 
 var logPattern = regexp.MustCompile(LOG_COMBINED_PATTERN)
 
+// Parse the fields in the nginx access logs since the `until` time, passing them as a map into the `processFun`.
+// Processing is interrupted when a log older than `until` is found.
 func ProcessAccessLogs(until *time.Time, processFun func(map[string]interface{}) error) error {
 
 	// could make sense to try detecting the OS and applying a sensible default accordingly

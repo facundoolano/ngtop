@@ -74,7 +74,7 @@ func (dbs *dbSession) Close() {
 	dbs.db.Close()
 }
 
-// TODO doc
+// Prepare a transaction to insert a new batch of log entries, returning the time of the last seen log entry.
 func (dbs *dbSession) PrepareForUpdate(columns []string) (*time.Time, error) {
 	// we want to avoid processed files that were already processed in the past.  but we still want to add new log entries
 	// from the most recent files, which may have been extended since we last saw them.
@@ -116,6 +116,8 @@ func (dbs *dbSession) AddLogEntry(values ...any) error {
 	return err
 }
 
+// If the given processing `err` is nil, commit the log insertion transaction,
+// Otherwise roll it back and return the error.
 func (dbs *dbSession) FinishUpdate(err error) error {
 	tx := dbs.insertTx
 	dbs.insertTx = nil
@@ -127,6 +129,7 @@ func (dbs *dbSession) FinishUpdate(err error) error {
 	return tx.Commit()
 }
 
+// Build a query from the spec and execute it, returning the results as stringified values.
 func (dbs *dbSession) QueryTop(spec *RequestCountSpec) ([]string, [][]string, error) {
 	queryString, queryArgs := spec.buildQuery()
 
@@ -161,6 +164,7 @@ func (dbs *dbSession) QueryTop(spec *RequestCountSpec) ([]string, [][]string, er
 	return columns, results, rows.Err()
 }
 
+// Turn the request count specification into an SQL query.
 func (spec *RequestCountSpec) buildQuery() (string, []any) {
 	queryArgs := []any{}
 

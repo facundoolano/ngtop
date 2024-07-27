@@ -68,6 +68,7 @@ func main() {
 	printTopTable(columnNames, rowValues)
 }
 
+// Parse the command line arguments into a top requests query specification
 func querySpecFromCLI() (*kong.Context, *RequestCountSpec) {
 	// Parse query spec first, i.e. don't bother with db updates if the command is invalid
 	fieldNames := make([]string, 0, len(FIELD_NAMES))
@@ -110,6 +111,11 @@ func querySpecFromCLI() (*kong.Context, *RequestCountSpec) {
 	return ctx, spec
 }
 
+// Parse the -w conditions like "ua=Firefox" and "url=/blog%" into a mapping that can be used to query the database.
+// field alias are translated to their canonical column name
+// multiple values of the same field are preserved to be used as OR values
+// different fields will be treated as AND conditions on the query
+// != pairs are treated as 'different than'
 func resolveWhereConditions(clauses []string) (map[string][]string, error) {
 	conditions := make(map[string][]string)
 
@@ -132,6 +138,7 @@ func resolveWhereConditions(clauses []string) (map[string][]string, error) {
 	return conditions, nil
 }
 
+// parse duration expressions as 1d or 10s into a date by subtracting them from the Now() time.
 func parseDuration(duration string) (time.Time, error) {
 	t := NowTimeFun().UTC()
 	if duration != "now" {
@@ -163,33 +170,35 @@ func parseDuration(duration string) (time.Time, error) {
 	return t, nil
 }
 
-func printTopTable(columnNames []string, rowValues [][]string) {
-	tab := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
-	fmt.Fprintf(tab, "%s\n", strings.ToUpper(strings.Join(columnNames, "\t")))
-	for _, row := range rowValues {
-		fmt.Fprintf(tab, "%s\n", strings.Join(row, "\t"))
-	}
-	tab.Flush()
-}
-
+// Parse the most recent nginx access.logs and insert the ones not previously seen into the DB.
 func loadLogs(dbs *dbSession) error {
 	// FIXME consolidate field list (duplicated knowledge)
-	insertFields := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent", "os", "device", "ua_url", "ua_type"}
+	dbColumns := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent", "os", "device", "ua_url", "ua_type"}
 
-	// FIXME this API could be improved, why not a single call?
-	lastSeenTime, err := dbs.PrepareForUpdate(insertFields)
+	lastSeenTime, err := dbs.PrepareForUpdate(dbColumns)
 	if err != nil {
 		return err
 	}
 
-	err = ProcessAccessLogs(lastSeenTime, func(fields map[string]interface{}) error {
-		queryValues := make([]interface{}, len(insertFields))
-		for i, field := range insertFields {
-			queryValues[i] = fields[field]
+	err = ProcessAccessLogs(lastSeenTime, func(logLineFields map[string]interface{}) error {
+		queryValues := make([]interface{}, len(dbColumns))
+		for i, field := range dbColumns {
+			queryValues[i] = logLineFields[field]
 		}
 		return dbs.AddLogEntry(queryValues...)
 	})
 
 	// Rollback or commit before returning, depending on error
 	return dbs.FinishUpdate(err)
+}
+
+// Print the query results as a table
+func printTopTable(columnNames []string, rowValues [][]string) {
+	tab := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
+	fmt.Fprintf(tab, "%s\n", strings.ToUpper(strings.Join(columnNames, "\t")))
+	for _, value := range rowValues {
+		// TODO for last item (always the count) do pretty formatting e.g. 1.3K instead of 1301
+		fmt.Fprintf(tab, "%s\n", strings.Join(value, "\t"))
+	}
+	tab.Flush()
 }
