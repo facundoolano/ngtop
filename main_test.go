@@ -15,10 +15,68 @@ func TestFieldsParsing(t *testing.T) {
 }
 
 func TestDurationParsing(t *testing.T) {
+	var duration time.Time
+	var err error
+
+	now := NowTimeFun()
+	assertEqual(t, now, time.Date(2024, time.July, 24, 0, 7, 0, 0, time.UTC))
+
 	// default to now
-	// support each unit s, m, h, d, M
+	duration, err = parseDuration("now")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, now)
+
+	// support each unit s, m, h, d, w, M
+	duration, err = parseDuration("1s")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.July, 24, 0, 6, 59, 0, time.UTC))
+	duration, err = parseDuration("10s")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.July, 24, 0, 6, 50, 0, time.UTC))
+
+	duration, err = parseDuration("1m")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.July, 24, 0, 6, 0, 0, time.UTC))
+	duration, err = parseDuration("5m")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.July, 24, 0, 2, 0, 0, time.UTC))
+
+	duration, err = parseDuration("1h")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.July, 23, 23, 7, 0, 0, time.UTC))
+	duration, err = parseDuration("5h")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.July, 23, 19, 7, 0, 0, time.UTC))
+
+	duration, err = parseDuration("1d")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.July, 23, 0, 7, 0, 0, time.UTC))
+	duration, err = parseDuration("5d")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.July, 19, 0, 7, 0, 0, time.UTC))
+
+	duration, err = parseDuration("1w")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.July, 17, 0, 7, 0, 0, time.UTC))
+	duration, err = parseDuration("2w")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.July, 10, 0, 7, 0, 0, time.UTC))
+
+	// (months are just 30 days not actual calendar months)
+	duration, err = parseDuration("1M")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.June, 24, 0, 7, 0, 0, time.UTC))
+	duration, err = parseDuration("2M")
+	assertEqual(t, nil, err)
+	assertEqual(t, duration, time.Date(2024, time.May, 25, 0, 7, 0, 0, time.UTC))
+
 	// fail on unknown unit
+	duration, err = parseDuration("1x")
+	assert(t, err != nil)
+
 	// fail on bad syntax
+	duration, err = parseDuration("asdassd")
+	assert(t, err != nil)
 }
 
 func TestWhereConditionParsing(t *testing.T) {
@@ -208,6 +266,13 @@ func TestMain(m *testing.M) {
 	}
 
 	m.Run()
+}
+
+func assert(t *testing.T, cond bool) {
+	t.Helper()
+	if !cond {
+		t.Fatalf("condition is false")
+	}
 }
 
 func assertEqual(t *testing.T, a interface{}, b interface{}) {

@@ -131,7 +131,7 @@ func resolveWhereConditions(clauses []string) (map[string][]string, error) {
 func parseDuration(duration string) (time.Time, error) {
 	t := NowTimeFun().UTC()
 	if duration != "now" {
-		re := regexp.MustCompile(`^(\d+)([smhdM])$`)
+		re := regexp.MustCompile(`^(\d+)([smhdwM])$`)
 		matches := re.FindStringSubmatch(duration)
 		if len(matches) != 3 {
 			return t, fmt.Errorf("invalid duration %s", duration)
