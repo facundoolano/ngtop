@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
 	"regexp"
 	"strconv"
@@ -196,9 +197,34 @@ func loadLogs(dbs *dbSession) error {
 func printTopTable(columnNames []string, rowValues [][]string) {
 	tab := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
 	fmt.Fprintf(tab, "%s\n", strings.ToUpper(strings.Join(columnNames, "\t")))
-	for _, value := range rowValues {
-		// TODO for last item (always the count) do pretty formatting e.g. 1.3K instead of 1301
-		fmt.Fprintf(tab, "%s\n", strings.Join(value, "\t"))
+	for _, row := range rowValues {
+		row[len(row)-1] = prettyPrintCount(row[len(row)-1])
+		fmt.Fprintf(tab, "%s\n", strings.Join(row, "\t"))
 	}
 	tab.Flush()
+}
+
+func prettyPrintCount(countStr string) string {
+	// FIXME some unnecessary work, first db stringifies, then this parses to int, then formats again.
+	// this suggests the query implementation and/or APIs could be made smarter
+	n, _ := strconv.Atoi(countStr)
+	if n == 0 {
+		return "0"
+	}
+
+	// HAZMAT: authored by chatgpt
+	// Define suffixes and corresponding values
+	suffixes := []string{"", "K", "M", "B", "T"}
+	base := 1000.0
+	absValue := math.Abs(float64(n))
+	magnitude := int(math.Floor(math.Log(absValue) / math.Log(base)))
+	value := absValue / math.Pow(base, float64(magnitude))
+
+	if magnitude == 0 {
+		// No suffix, present as an integer
+		return fmt.Sprintf("%d", n)
+	} else {
+		// Use the suffix and present as a float with 1 decimal place
+		return fmt.Sprintf("%.1f%s", value, suffixes[magnitude])
+	}
 }
