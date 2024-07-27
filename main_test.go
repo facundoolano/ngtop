@@ -251,28 +251,25 @@ func TestMultipleLogFiles(t *testing.T) {
 
 func runCommand(t *testing.T, logs string, cliArgs []string) ([]string, [][]string) {
 	// write the logs to a temp file, and point the NGTOP_LOGS_PATH env to it
-	f, err := os.CreateTemp("", "access.log")
+	logFile, err := os.CreateTemp("", "access.log")
 	assertEqual(t, err, nil)
-	defer os.Remove(f.Name())
-	_, err = f.Write([]byte(logs))
+	defer os.Remove(logFile.Name())
+	_, err = logFile.Write([]byte(logs))
 	assertEqual(t, err, nil)
-	t.Setenv("NGTOP_LOGS_PATH", f.Name())
 
 	// create a one-off db file for the test
-	f, err = os.CreateTemp("", "ngtop.db")
+	dbFile, err := os.CreateTemp("", "ngtop.db")
 	assertEqual(t, err, nil)
-	defer os.Remove(f.Name())
-	os.Setenv("NGTOP_DB", f.Name())
+	defer os.Remove(dbFile.Name())
 
-	// some duplication from main here, maybe can refactored away
 	os.Args = append([]string{"ngtop"}, cliArgs...)
 	_, spec := querySpecFromCLI()
 
-	dbs, err := InitDB()
+	dbs, err := InitDB(dbFile.Name())
 	assertEqual(t, err, nil)
 	defer dbs.Close()
 
-	err = loadLogs(dbs)
+	err = loadLogs(logFile.Name(), dbs)
 	assertEqual(t, err, nil)
 	columnNames, rowValues, err := dbs.QueryTop(spec)
 	assertEqual(t, err, nil)

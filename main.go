@@ -75,7 +75,7 @@ func main() {
 	ctx.FatalIfErrorf(err)
 	defer dbs.Close()
 
-	err = loadLogs(dbs, logPathPattern)
+	err = loadLogs(logPathPattern, dbs)
 	ctx.FatalIfErrorf(err)
 
 	columnNames, rowValues, err := dbs.QueryTop(spec)
@@ -186,7 +186,7 @@ func parseDuration(duration string) (time.Time, error) {
 }
 
 // Parse the most recent nginx access.logs and insert the ones not previously seen into the DB.
-func loadLogs(dbs *dbSession, logPathPattern string) error {
+func loadLogs(logPathPattern string, dbs *dbSession) error {
 	logFiles, err := filepath.Glob(logPathPattern)
 	if err != nil {
 		return err
