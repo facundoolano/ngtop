@@ -17,15 +17,23 @@ import (
 	"github.com/mileusna/useragent"
 )
 
+// TODO
 type LogField struct {
-	LogFormatVar       string
-	CLINames           []string
-	ColumnName         string
-	ColumnSpec         string
-	Parse              func(string) string
+	// TODO
+	LogFormatVar string
+	// TODO
+	CLINames []string
+	// TODO
+	ColumnName string
+	// TODO
+	ColumnSpec string
+	// TODO
+	Parse func(string) string
+	// TODO
 	ParseDerivedFields func(string) map[string]string
 }
 
+// TODO
 var KNOWN_FIELDS = []LogField{
 	{
 		LogFormatVar: "time_local",
