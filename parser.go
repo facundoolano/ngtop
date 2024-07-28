@@ -120,8 +120,19 @@ func parseLogLine(pattern *regexp.Regexp, line string) (map[string]string, error
 
 	result := make(map[string]string)
 	for i, name := range pattern.SubexpNames() {
+		field := NAME_TO_FIELD[name]
 		if i != 0 && name != "" && match[i] != "-" {
-			result[name] = match[i]
+			if field.Parse != nil {
+				result[name] = field.Parse(match[i])
+			} else {
+				result[name] = match[i]
+			}
+
+			if field.ParseDerivedFields != nil {
+				for key, value := range field.ParseDerivedFields(match[i]) {
+					result[key] = value
+				}
+			}
 		}
 	}
 	return result, nil
