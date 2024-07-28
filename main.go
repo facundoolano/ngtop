@@ -36,8 +36,6 @@ var FIELD_NAMES = map[string]string{
 	"os":         "os",
 	"device":     "device",
 	"request":    "request_raw",
-	"bytes":      "bytes_sent",
-	"bytes_sent": "bytes_sent",
 	"path":       "path",
 	"url":        "path",
 	"ip":         "ip",
@@ -202,7 +200,7 @@ func loadLogs(logFormat string, logPathPattern string, dbs *dbSession) error {
 	}
 
 	// FIXME consolidate field list (duplicated knowledge)
-	dbColumns := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent", "os", "device", "ua_url", "ua_type"}
+	dbColumns := []string{"ip", "time", "request_raw", "status", "referer", "user_agent_raw", "method", "path", "user_agent", "os", "device", "ua_url", "ua_type"}
 
 	lastSeenTime, err := dbs.PrepareForUpdate(dbColumns)
 	if err != nil {
