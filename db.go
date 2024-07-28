@@ -36,7 +36,7 @@ func InitDB(dbPath string) (*dbSession, error) {
 	}
 
 	// TODO consider adding indexes according to expected queries
-
+	// FIXME build this dynamically based on the log format columns
 	sqlStmt := `
 		CREATE TABLE IF NOT EXISTS access_logs (
 			id 				INTEGER NOT NULL PRIMARY KEY,

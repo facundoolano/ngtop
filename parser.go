@@ -58,15 +58,19 @@ var KNOWN_FIELDS = []LogField{
 	// TODO ua_type
 }
 
-var LOGVAR_TO_NAME = map[string]string{}
-var NAME_TO_FIELD = map[string]*LogField{}
+var LOGVAR_TO_FIELD = map[string]*LogField{}
+var COLUMN_NAME_TO_FIELD = map[string]*LogField{}
+var CLI_NAME_TO_FIELD = map[string]*LogField{}
 
 func init() {
 	for _, field := range KNOWN_FIELDS {
+		COLUMN_NAME_TO_FIELD[field.ColumnName] = &field
 		if field.LogFormatVar != "" {
-			LOGVAR_TO_NAME[field.LogFormatVar] = field.ColumnName
+			LOGVAR_TO_FIELD[field.LogFormatVar] = &field
 		}
-		NAME_TO_FIELD[field.ColumnName] = &field
+		for _, name := range field.CLINames {
+			CLI_NAME_TO_FIELD[name] = &field
+		}
 	}
 }
 
@@ -91,8 +95,9 @@ func FormatToRegex(format string) *regexp.Regexp {
 			i += len(varname)
 
 			// write the proper capture group to the format regex pattern
-			if groupname, isKnownField := LOGVAR_TO_NAME[varname]; isKnownField {
+			if field, isKnownField := LOGVAR_TO_FIELD[varname]; isKnownField {
 				// if the var matches a field we care to extract, use a named group
+				groupname := field.ColumnName
 				if previousWasSpace {
 					newFormat += "(?P<" + groupname + ">\\S+)"
 				} else {
@@ -120,7 +125,7 @@ func parseLogLine(pattern *regexp.Regexp, line string) (map[string]string, error
 
 	result := make(map[string]string)
 	for i, name := range pattern.SubexpNames() {
-		field := NAME_TO_FIELD[name]
+		field := COLUMN_NAME_TO_FIELD[name]
 		if i != 0 && name != "" && match[i] != "-" {
 			if field.Parse != nil {
 				result[name] = field.Parse(match[i])

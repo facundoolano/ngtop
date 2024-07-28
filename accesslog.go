@@ -1,3 +1,4 @@
+// FIXME this file shouldn't exist
 package main
 
 import (
