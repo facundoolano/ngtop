@@ -129,7 +129,7 @@ func ProcessAccessLogs(
 
 	var untilStr string
 	if until != nil {
-		until.Format(DB_DATE_LAYOUT)
+		untilStr = until.Format(DB_DATE_LAYOUT)
 	}
 
 	for _, path := range logFiles {
