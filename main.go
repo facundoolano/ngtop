@@ -24,29 +24,6 @@ type CommandArgs struct {
 	Where  []string `short:"w" optional:"" help:"Filter expressions. Example: -w useragent=Safari -w status=200"`
 }
 
-// FIXME consolidate field list (duplicated knowledge)
-var FIELD_NAMES = map[string]string{
-	"user_agent": "user_agent",
-	"useragent":  "user_agent",
-	"ua":         "user_agent",
-	"ua_type":    "ua_type",
-	"uatype":     "ua_type",
-	"ua_url":     "ua_url",
-	"uaurl":      "ua_url",
-	"os":         "os",
-	"device":     "device",
-	"request":    "request_raw",
-	"bytes":      "bytes_sent",
-	"bytes_sent": "bytes_sent",
-	"path":       "path",
-	"url":        "path",
-	"ip":         "ip",
-	"referer":    "referer",
-	"referrer":   "referer",
-	"status":     "status",
-	"method":     "method",
-}
-
 // Use a var to get current time, allowing for tests to override it
 var NowTimeFun = time.Now
 
@@ -54,6 +31,9 @@ var NowTimeFun = time.Now
 // overridable with NGTOP_LOGS_PATH env var
 const DEFAULT_PATH_PATTERN = "/var/log/nginx/access.log*"
 const DEFAULT_DB_PATH = "./ngtop.db"
+
+// TODO replace with 'combined' once alias support is added
+const DEFAULT_LOG_FORMAT = `$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"`
 
 func main() {
 	// Optionally enable internal logger
@@ -71,12 +51,17 @@ func main() {
 		logPathPattern = envLogsPath
 	}
 
+	logFormat := DEFAULT_LOG_FORMAT
+	if envLogFormat := os.Getenv("NGTOP_LOG_FORMAT"); envLogFormat != "" {
+		logFormat = envLogFormat
+	}
+
 	ctx, spec := querySpecFromCLI()
 	dbs, err := InitDB(dbPath)
 	ctx.FatalIfErrorf(err)
 	defer dbs.Close()
 
-	err = loadLogs(logPathPattern, dbs)
+	err = loadLogs(logFormat, logPathPattern, dbs)
 	ctx.FatalIfErrorf(err)
 
 	columnNames, rowValues, err := dbs.QueryTop(spec)
@@ -87,8 +72,8 @@ func main() {
 // Parse the command line arguments into a top requests query specification
 func querySpecFromCLI() (*kong.Context, *RequestCountSpec) {
 	// Parse query spec first, i.e. don't bother with db updates if the command is invalid
-	fieldNames := make([]string, 0, len(FIELD_NAMES))
-	for k := range FIELD_NAMES {
+	fieldNames := make([]string, 0, len(CLI_NAME_TO_FIELD))
+	for k := range CLI_NAME_TO_FIELD {
 		fieldNames = append(fieldNames, k)
 	}
 
@@ -111,7 +96,7 @@ func querySpecFromCLI() (*kong.Context, *RequestCountSpec) {
 	// translate field name aliases
 	columns := make([]string, len(cli.Fields))
 	for i, field := range cli.Fields {
-		columns[i] = FIELD_NAMES[field]
+		columns[i] = CLI_NAME_TO_FIELD[field].ColumnName
 	}
 
 	whereConditions, err := resolveWhereConditions(cli.Where)
@@ -144,10 +129,10 @@ func resolveWhereConditions(clauses []string) (map[string][]string, error) {
 			return nil, fmt.Errorf("invalid where expression %s", clause)
 		}
 
-		if column, found := FIELD_NAMES[keyvalue[0]]; !found {
-			return nil, fmt.Errorf("unknown field name %s", keyvalue[0])
+		if field, found := CLI_NAME_TO_FIELD[keyvalue[0]]; found {
+			conditions[field.ColumnName] = append(conditions[field.ColumnName], keyvalue[1])
 		} else {
-			conditions[column] = append(conditions[column], keyvalue[1])
+			return nil, fmt.Errorf("unknown field name %s", keyvalue[0])
 		}
 	}
 
@@ -187,21 +172,21 @@ func parseDuration(duration string) (time.Time, error) {
 }
 
 // Parse the most recent nginx access.logs and insert the ones not previously seen into the DB.
-func loadLogs(logPathPattern string, dbs *dbSession) error {
+func loadLogs(logFormat string, logPathPattern string, dbs *dbSession) error {
 	logFiles, err := filepath.Glob(logPathPattern)
 	if err != nil {
 		return err
 	}
 
 	// FIXME consolidate field list (duplicated knowledge)
-	dbColumns := []string{"ip", "time", "request_raw", "status", "bytes_sent", "referer", "user_agent_raw", "method", "path", "user_agent", "os", "device", "ua_url", "ua_type"}
+	dbColumns := []string{"ip", "time", "request_raw", "status", "referer", "user_agent_raw", "method", "path", "user_agent", "os", "device", "ua_url", "ua_type"}
 
 	lastSeenTime, err := dbs.PrepareForUpdate(dbColumns)
 	if err != nil {
 		return err
 	}
 
-	err = ProcessAccessLogs(logFiles, lastSeenTime, func(logLineFields map[string]interface{}) error {
+	err = ProcessAccessLogs(logFormat, logFiles, lastSeenTime, func(logLineFields map[string]string) error {
 		queryValues := make([]interface{}, len(dbColumns))
 		for i, field := range dbColumns {
 			queryValues[i] = logLineFields[field]

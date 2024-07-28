@@ -24,6 +24,8 @@ type dbSession struct {
 	insertStmt *sql.Stmt
 }
 
+const DB_DATE_LAYOUT = "2006-01-02 15:04:05-07:00"
+
 // Open or create the database at the given path.
 func InitDB(dbPath string) (*dbSession, error) {
 	db, err := sql.Open("sqlite3", dbPath)
@@ -36,17 +38,17 @@ func InitDB(dbPath string) (*dbSession, error) {
 	}
 
 	// TODO consider adding indexes according to expected queries
-
+	// FIXME build this dynamically based on the log format columns
 	sqlStmt := `
 		CREATE TABLE IF NOT EXISTS access_logs (
 			id 				INTEGER NOT NULL PRIMARY KEY,
+			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
 			ip				TEXT,
 			time 			TIMESTAMP NOT NULL,
 			request_raw		TEXT NOT NULL,
 			user_agent_raw 	TEXT,
 			status			INTEGER,
-			bytes_sent		INTEGER,
 			referer 		TEXT COLLATE NOCASE,
 
 			method			TEXT COLLATE NOCASE,
@@ -55,10 +57,8 @@ func InitDB(dbPath string) (*dbSession, error) {
 			os			 	TEXT COLLATE NOCASE,
 			device		 	TEXT COLLATE NOCASE,
 			ua_url		 	TEXT,
-			ua_type		 	TEXT COLLATE NOCASE,
+			ua_type		 	TEXT COLLATE NOCASE
 
-
-			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 	`
 	_, err = db.Exec(sqlStmt)
@@ -86,7 +86,7 @@ func (dbs *dbSession) PrepareForUpdate(columns []string) (*time.Time, error) {
 			return nil, err
 		}
 
-		t, _ := timeFromDBFormat(lastSeenTimeStr)
+		t, _ := time.Parse(DB_DATE_LAYOUT, lastSeenTimeStr)
 		lastSeemTime = &t
 	}
 
@@ -216,9 +216,4 @@ func (spec *RequestCountSpec) buildQuery() (string, []any) {
 	log.Printf("query: %s %s\n", queryString, queryArgs)
 
 	return queryString, queryArgs
-}
-
-func timeFromDBFormat(timestamp string) (time.Time, error) {
-	sqliteLayout := "2006-01-02 15:04:05-07:00"
-	return time.Parse(sqliteLayout, timestamp)
 }

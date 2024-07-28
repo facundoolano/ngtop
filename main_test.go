@@ -269,7 +269,7 @@ func runCommand(t *testing.T, logs string, cliArgs []string) ([]string, [][]stri
 	assertEqual(t, err, nil)
 	defer dbs.Close()
 
-	err = loadLogs(logFile.Name(), dbs)
+	err = loadLogs(DEFAULT_LOG_FORMAT, logFile.Name(), dbs)
 	assertEqual(t, err, nil)
 	columnNames, rowValues, err := dbs.QueryTop(spec)
 	assertEqual(t, err, nil)
