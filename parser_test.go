@@ -11,12 +11,17 @@ func TestFormatRegex(t *testing.T) {
 	result, err := parseLogLine(pattern, line)
 	assertEqual(t, err, nil)
 
+	assertEqual(t, result["ip"], "xx.xx.xx.xx")
 	assertEqual(t, result["time"], "2024-07-24 00:00:28+00:00")
 	assertEqual(t, result["request_raw"], "GET /feed HTTP/1.1")
-	assertEqual(t, result["user_agent_raw"], "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36")
+	assertEqual(t, result["status"], "301")
 	assertEqual(t, result["referer"], "")
+	assertEqual(t, result["user_agent_raw"], "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36")
 
 	// derived fields
-	assertEqual(t, result["path"], "/feed")
 	assertEqual(t, result["method"], "GET")
+	assertEqual(t, result["path"], "/feed")
+	assertEqual(t, result["user_agent"], "Chrome")
+	assertEqual(t, result["ua_type"], "desktop")
+	assertEqual(t, result["os"], "Windows")
 }

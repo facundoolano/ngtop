@@ -40,6 +40,7 @@ func InitDB(dbPath string) (*dbSession, error) {
 	sqlStmt := `
 		CREATE TABLE IF NOT EXISTS access_logs (
 			id 				INTEGER NOT NULL PRIMARY KEY,
+			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
 			ip				TEXT,
 			time 			TIMESTAMP NOT NULL,
@@ -54,9 +55,8 @@ func InitDB(dbPath string) (*dbSession, error) {
 			os			 	TEXT COLLATE NOCASE,
 			device		 	TEXT COLLATE NOCASE,
 			ua_url		 	TEXT,
-			ua_type		 	TEXT COLLATE NOCASE,
+			ua_type		 	TEXT COLLATE NOCASE
 
-			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 	`
 	_, err = db.Exec(sqlStmt)

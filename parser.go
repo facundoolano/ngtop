@@ -46,16 +46,53 @@ var KNOWN_FIELDS = []LogField{
 		ColumnSpec:   "TEXT COLLATE NOCASE",
 		Parse:        stripUrlSource,
 	},
-
-	// TODO ip
-	// TODO status
-	// TODO method
-	// TODO path
-	// TODO user_agent
-	// TODO os
-	// TODO device
-	// TODO ua_url
-	// TODO ua_type
+	{
+		LogFormatVar: "remote_addr",
+		CLINames:     []string{"ip"},
+		ColumnName:   "ip",
+		ColumnSpec:   "TEXT",
+	},
+	{
+		LogFormatVar: "status",
+		CLINames:     []string{"status"},
+		ColumnName:   "status",
+		ColumnSpec:   "INTEGER",
+	},
+	{
+		CLINames:   []string{"method"},
+		ColumnName: "method",
+		ColumnSpec: "TEXT COLLATE NOCASE",
+	},
+	{
+		CLINames:   []string{"path", "url"},
+		ColumnName: "path",
+		ColumnSpec: "TEXT",
+	},
+	{
+		CLINames:   []string{"user_agent", "ua", "useragent"},
+		ColumnName: "user_agent",
+		ColumnSpec: "TEXT COLLATE NOCASE",
+	},
+	{
+		CLINames:   []string{"os"},
+		ColumnName: "os",
+		ColumnSpec: "TEXT COLLATE NOCASE",
+	},
+	{
+		CLINames:   []string{"device"},
+		ColumnName: "device",
+		ColumnSpec: "TEXT COLLATE NOCASE",
+	},
+	{
+		CLINames:   []string{"ua_url", "uaurl"},
+		ColumnName: "ua_url",
+		ColumnSpec: "TEXT",
+	},
+	{
+		CLINames:   []string{"ua_type", "uatype"},
+		ColumnName: "ua_type",
+		ColumnSpec: "TEXT COLLATE NOCASE",
+	},
 }
 
 var LOGVAR_TO_FIELD = map[string]*LogField{}
