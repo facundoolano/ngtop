@@ -1,4 +1,3 @@
-// FIXME this should probably be renamed to parser.go and kill accesslog.log
 package main
 
 import (
@@ -64,9 +63,46 @@ var LOGVAR_TO_NAME = map[string]string{}
 var NAME_TO_FIELD = map[string]LogField{}
 
 func FormatToRegex(format string) *regexp.Regexp {
+	return regexp.MustCompile(formatRegexString(format))
+}
 
-	// logPattern := regexp.MustCompile(format)
-	return nil
+// FIXME remove?
+func formatRegexString(format string) string {
+	chars := []rune(format)
+	var newFormat string
+
+	// comesFromSpace is used to tell, when a var is found, if it is expected to contain spaces
+	// without knowing which characters are used to sorround it, eg: "$http_user_agent" [$time_local]
+	// FIXME maybe better to preserve previous char
+	comesFromSpace := true
+	for i := 0; i < len(chars); i++ {
+		if chars[i] != '$' {
+			comesFromSpace = chars[i] == ' '
+			newFormat += regexp.QuoteMeta(string(chars[i]))
+		} else {
+			// found a varname, process it
+			i++
+			varname := ""
+			for ; i < len(format) && ((chars[i] >= 'a' && chars[i] <= 'z') || chars[i] == '_'); i++ {
+				varname += string(chars[i])
+			}
+			if groupname, knownVar := LOGVAR_TO_NAME[varname]; knownVar {
+				if comesFromSpace {
+					newFormat += "(?P<" + groupname + ">\\S+)"
+				} else {
+					newFormat += "(?P<" + groupname + ">.*?)"
+				}
+			} else {
+				if comesFromSpace {
+					newFormat += "(?:\\S+)"
+				} else {
+					newFormat += "(?:.*?)"
+				}
+			}
+
+		}
+	}
+	return newFormat
 }
 
 func parseLogLine(pattern *regexp.Regexp, line string) (map[string]string, error) {
