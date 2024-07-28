@@ -24,27 +24,6 @@ type CommandArgs struct {
 	Where  []string `short:"w" optional:"" help:"Filter expressions. Example: -w useragent=Safari -w status=200"`
 }
 
-// FIXME consolidate field list (duplicated knowledge)
-var FIELD_NAMES = map[string]string{
-	"user_agent": "user_agent",
-	"useragent":  "user_agent",
-	"ua":         "user_agent",
-	"ua_type":    "ua_type",
-	"uatype":     "ua_type",
-	"ua_url":     "ua_url",
-	"uaurl":      "ua_url",
-	"os":         "os",
-	"device":     "device",
-	"request":    "request_raw",
-	"path":       "path",
-	"url":        "path",
-	"ip":         "ip",
-	"referer":    "referer",
-	"referrer":   "referer",
-	"status":     "status",
-	"method":     "method",
-}
-
 // Use a var to get current time, allowing for tests to override it
 var NowTimeFun = time.Now
 
@@ -93,8 +72,8 @@ func main() {
 // Parse the command line arguments into a top requests query specification
 func querySpecFromCLI() (*kong.Context, *RequestCountSpec) {
 	// Parse query spec first, i.e. don't bother with db updates if the command is invalid
-	fieldNames := make([]string, 0, len(FIELD_NAMES))
-	for k := range FIELD_NAMES {
+	fieldNames := make([]string, 0, len(CLI_NAME_TO_FIELD))
+	for k := range CLI_NAME_TO_FIELD {
 		fieldNames = append(fieldNames, k)
 	}
 
@@ -117,7 +96,7 @@ func querySpecFromCLI() (*kong.Context, *RequestCountSpec) {
 	// translate field name aliases
 	columns := make([]string, len(cli.Fields))
 	for i, field := range cli.Fields {
-		columns[i] = FIELD_NAMES[field]
+		columns[i] = CLI_NAME_TO_FIELD[field].ColumnName
 	}
 
 	whereConditions, err := resolveWhereConditions(cli.Where)
@@ -150,10 +129,10 @@ func resolveWhereConditions(clauses []string) (map[string][]string, error) {
 			return nil, fmt.Errorf("invalid where expression %s", clause)
 		}
 
-		if column, found := FIELD_NAMES[keyvalue[0]]; !found {
-			return nil, fmt.Errorf("unknown field name %s", keyvalue[0])
+		if field, found := CLI_NAME_TO_FIELD[keyvalue[0]]; found {
+			conditions[field.ColumnName] = append(conditions[field.ColumnName], keyvalue[1])
 		} else {
-			conditions[column] = append(conditions[column], keyvalue[1])
+			return nil, fmt.Errorf("unknown field name %s", keyvalue[0])
 		}
 	}
 
