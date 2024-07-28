@@ -22,25 +22,25 @@ type LogField struct {
 
 var KNOWN_FIELDS = []LogField{
 	{
-		LogFormatVar: "$time_local",
+		LogFormatVar: "time_local",
 		ColumnName:   "time",
 		ColumnSpec:   "TIMESTAMP NOT NULL",
 		Parse:        parseTime,
 	},
 	{
-		LogFormatVar:       "$request",
+		LogFormatVar:       "request",
 		ColumnName:         "request_raw",
 		ColumnSpec:         "TEXT",
 		ParseDerivedFields: parseRequestDerivedFields,
 	},
 	{
-		LogFormatVar:       "$http_user_agent",
+		LogFormatVar:       "http_user_agent",
 		ColumnName:         "user_agent_raw",
 		ColumnSpec:         "TEXT",
 		ParseDerivedFields: parseUserAgentDerivedFields,
 	},
 	{
-		LogFormatVar: "$http_referer",
+		LogFormatVar: "http_referer",
 		CLINames:     []string{"referer", "ref", "referrer"},
 		ColumnName:   "referer",
 		ColumnSpec:   "TEXT COLLATE NOCASE",
@@ -58,9 +58,17 @@ var KNOWN_FIELDS = []LogField{
 	// TODO ua_type
 }
 
-// FIXME populate in init
 var LOGVAR_TO_NAME = map[string]string{}
-var NAME_TO_FIELD = map[string]LogField{}
+var NAME_TO_FIELD = map[string]*LogField{}
+
+func init() {
+	for _, field := range KNOWN_FIELDS {
+		if field.LogFormatVar != "" {
+			LOGVAR_TO_NAME[field.LogFormatVar] = field.ColumnName
+		}
+		NAME_TO_FIELD[field.ColumnName] = &field
+	}
+}
 
 func FormatToRegex(format string) *regexp.Regexp {
 	return regexp.MustCompile(formatRegexString(format))
@@ -83,9 +91,10 @@ func formatRegexString(format string) string {
 			// found a varname, process it
 			varname := ""
 			for j := i + 1; j < len(format) && ((chars[j] >= 'a' && chars[j] <= 'z') || chars[j] == '_'); j++ {
-				varname += string(chars[i])
+				varname += string(chars[j])
 			}
 			i += len(varname)
+			fmt.Printf("LALA variable is %s\n", varname)
 			if groupname, knownVar := LOGVAR_TO_NAME[varname]; knownVar {
 				if comesFromSpace {
 					newFormat += "(?P<" + groupname + ">\\S+)"
