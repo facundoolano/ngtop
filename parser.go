@@ -71,11 +71,6 @@ func init() {
 }
 
 func FormatToRegex(format string) *regexp.Regexp {
-	return regexp.MustCompile(formatRegexString(format))
-}
-
-// FIXME this separation is only temporary, move to the one above
-func formatRegexString(format string) string {
 	chars := []rune(format)
 	var newFormat string
 
@@ -111,7 +106,7 @@ func formatRegexString(format string) string {
 
 		}
 	}
-	return newFormat
+	return regexp.MustCompile(newFormat)
 }
 
 func parseLogLine(pattern *regexp.Regexp, line string) (map[string]string, error) {
