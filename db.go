@@ -27,7 +27,7 @@ type dbSession struct {
 const DB_DATE_LAYOUT = "2006-01-02 15:04:05-07:00"
 
 // Open or create the database at the given path.
-func InitDB(dbPath string) (*dbSession, error) {
+func InitDB(dbPath string, dbColumns []*LogField) (*dbSession, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, err
