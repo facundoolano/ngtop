@@ -30,6 +30,8 @@ type LogField struct {
 	// TODO
 	Parse func(string) string
 	// TODO
+	DerivedFields []string
+	// TODO
 	ParseDerivedFields func(string) map[string]string
 }
 
@@ -45,12 +47,14 @@ var KNOWN_FIELDS = []LogField{
 		LogFormatVar:       "request",
 		ColumnName:         "request_raw",
 		ColumnSpec:         "TEXT",
+		DerivedFields:      []string{"path", "method", "referer"},
 		ParseDerivedFields: parseRequestDerivedFields,
 	},
 	{
 		LogFormatVar:       "http_user_agent",
 		ColumnName:         "user_agent_raw",
 		ColumnSpec:         "TEXT",
+		DerivedFields:      []string{"user_agent", "os", "device", "ua_type", "ua_url"},
 		ParseDerivedFields: parseUserAgentDerivedFields,
 	},
 	{
