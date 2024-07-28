@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestFormatRegex(t *testing.T) {
-	formatRegexString(DEFAULT_LOG_FORMAT)
+	result := formatRegexString(DEFAULT_LOG_FORMAT)
+	fmt.Printf("LALAL %s", result)
 
 	// FIXME
-	assertEqual(t, 1, 1)
+	assertEqual(t, 1, 2)
 }

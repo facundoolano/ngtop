@@ -81,11 +81,11 @@ func formatRegexString(format string) string {
 			newFormat += regexp.QuoteMeta(string(chars[i]))
 		} else {
 			// found a varname, process it
-			i++
 			varname := ""
-			for ; i < len(format) && ((chars[i] >= 'a' && chars[i] <= 'z') || chars[i] == '_'); i++ {
+			for j := i + 1; j < len(format) && ((chars[j] >= 'a' && chars[j] <= 'z') || chars[j] == '_'); j++ {
 				varname += string(chars[i])
 			}
+			i += len(varname)
 			if groupname, knownVar := LOGVAR_TO_NAME[varname]; knownVar {
 				if comesFromSpace {
 					newFormat += "(?P<" + groupname + ">\\S+)"
