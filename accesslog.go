@@ -21,6 +21,11 @@ func ProcessAccessLogs(
 ) error {
 	logPattern := FormatToRegex(logFormat)
 
+	var untilStr string
+	if until != nil {
+		until.Format(DB_DATE_LAYOUT)
+	}
+
 	for _, path := range logFiles {
 
 		log.Printf("parsing %s", path)
@@ -51,10 +56,10 @@ func ProcessAccessLogs(
 			}
 
 			// FIXME convert until to string above and make them comparable
-			// if until != nil && values["time"] < *until < 0 {
-			// 	// already caught up, no need to continue processing
-			// 	return nil
-			// }
+			if untilStr != "" && values["time"] < untilStr {
+				// already caught up, no need to continue processing
+				return nil
+			}
 
 			if err := processFun(values); err != nil {
 				return err
@@ -66,9 +71,4 @@ func ProcessAccessLogs(
 	}
 
 	return nil
-}
-
-func timeFromLogFormat(timestamp string) (time.Time, error) {
-	clfLayout := "02/Jan/2006:15:04:05 -0700"
-	return time.Parse(clfLayout, timestamp)
 }

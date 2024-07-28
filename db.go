@@ -24,6 +24,8 @@ type dbSession struct {
 	insertStmt *sql.Stmt
 }
 
+const DB_DATE_LAYOUT = "2006-01-02 15:04:05-07:00"
+
 // Open or create the database at the given path.
 func InitDB(dbPath string) (*dbSession, error) {
 	db, err := sql.Open("sqlite3", dbPath)
@@ -84,7 +86,7 @@ func (dbs *dbSession) PrepareForUpdate(columns []string) (*time.Time, error) {
 			return nil, err
 		}
 
-		t, _ := timeFromDBFormat(lastSeenTimeStr)
+		t, _ := time.Parse(DB_DATE_LAYOUT, lastSeenTimeStr)
 		lastSeemTime = &t
 	}
 
@@ -214,9 +216,4 @@ func (spec *RequestCountSpec) buildQuery() (string, []any) {
 	log.Printf("query: %s %s\n", queryString, queryArgs)
 
 	return queryString, queryArgs
-}
-
-func timeFromDBFormat(timestamp string) (time.Time, error) {
-	sqliteLayout := "2006-01-02 15:04:05-07:00"
-	return time.Parse(sqliteLayout, timestamp)
 }
