@@ -125,6 +125,8 @@ func init() {
 	}
 }
 
+const LOG_DATE_LAYOUT = "02/Jan/2006:15:04:05 -0700"
+
 // Parse the fields in the nginx access logs since the `until` time, passing them as a map into the `processFun`.
 // Processing is interrupted when a log older than `until` is found.
 func ProcessAccessLogs(
@@ -265,13 +267,11 @@ func stripUrlSource(value string) string {
 
 // FIXME error instead of panic?
 func parseTime(timestamp string) string {
-	logLayout := "02/Jan/2006:15:04:05 -0700"
-	dbLayout := "2006-01-02 15:04:05-07:00"
-	t, err := time.Parse(logLayout, timestamp)
+	t, err := time.Parse(LOG_DATE_LAYOUT, timestamp)
 	if err != nil {
 		panic("can't parse log timestamp " + timestamp)
 	}
-	return t.Format(dbLayout)
+	return t.Format(DB_DATE_LAYOUT)
 }
 
 func parseRequestDerivedFields(request string) map[string]string {
