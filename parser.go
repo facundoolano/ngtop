@@ -74,7 +74,7 @@ func FormatToRegex(format string) *regexp.Regexp {
 	return regexp.MustCompile(formatRegexString(format))
 }
 
-// FIXME remove?
+// FIXME this separation is only temporary, move to the one above
 func formatRegexString(format string) string {
 	chars := []rune(format)
 	var newFormat string
