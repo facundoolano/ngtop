@@ -55,7 +55,6 @@ func ProcessAccessLogs(
 				continue
 			}
 
-			// FIXME convert until to string above and make them comparable
 			if untilStr != "" && values["time"] < untilStr {
 				// already caught up, no need to continue processing
 				return nil
