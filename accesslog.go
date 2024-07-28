@@ -3,15 +3,10 @@ package main
 import (
 	"bufio"
 	"compress/gzip"
-	"github.com/mileusna/useragent"
 	"io"
 	"log"
-	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -21,8 +16,10 @@ func ProcessAccessLogs(
 	logFormat string,
 	logFiles []string,
 	until *time.Time,
-	processFun func(map[string]interface{}) error,
+	processFun func(map[string]string) error,
 ) error {
+	logPattern := FormatToRegex(logFormat)
+
 	for _, path := range logFiles {
 
 		log.Printf("parsing %s", path)
@@ -43,7 +40,7 @@ func ProcessAccessLogs(
 		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			line := scanner.Text()
-			values, err := parseLogLine(line)
+			values, err := parseLogLine(logPattern, line)
 			if err != nil {
 				return err
 			}
@@ -52,10 +49,11 @@ func ProcessAccessLogs(
 				continue
 			}
 
-			if until != nil && values["time"].(time.Time).Compare(*until) < 0 {
-				// already caught up, no need to continue processing
-				return nil
-			}
+			// FIXME convert until to string above and make them comparable
+			// if until != nil && values["time"] < *until < 0 {
+			// 	// already caught up, no need to continue processing
+			// 	return nil
+			// }
 
 			if err := processFun(values); err != nil {
 				return err
@@ -67,93 +65,6 @@ func ProcessAccessLogs(
 	}
 
 	return nil
-}
-
-func parseLogLine(logLine string) (map[string]interface{}, error) {
-	match := logPattern.FindStringSubmatch(logLine)
-	if match == nil {
-		return nil, nil
-	}
-	result := make(map[string]interface{})
-	for i, name := range logPattern.SubexpNames() {
-		if i != 0 && name != "" && match[i] != "-" {
-			result[name] = match[i]
-		}
-	}
-
-	// assuming all the fields were found otherwise there would be no match above
-
-	// parse log time to time.Time
-	time, err := timeFromLogFormat(result["time"].(string))
-	if err != nil {
-		return nil, err
-	}
-	result["time"] = time
-
-	// bytes as integer
-	bytes_sent, _ := strconv.Atoi(result["bytes_sent"].(string))
-	result["bytes_sent"] = bytes_sent
-
-	// status as integer
-	status, _ := strconv.Atoi(result["status"].(string))
-	result["status"] = status
-
-	if ua, found := result["user_agent_raw"]; found {
-		ua := useragent.Parse(ua.(string))
-		result["user_agent"] = ua.Name
-		result["os"] = ua.OS
-		result["device"] = ua.Device
-		result["ua_url"] = stripUrlSource(ua.URL)
-		if ua.Bot {
-			result["ua_type"] = "bot"
-		} else if ua.Tablet {
-			result["ua_type"] = "tablet"
-		} else if ua.Mobile {
-			result["ua_type"] = "mobile"
-		} else if ua.Desktop {
-			result["ua_type"] = "desktop"
-		}
-	}
-
-	referer, hasReferer := result["referer"]
-	if hasReferer {
-		result["referer"] = stripUrlSource(referer.(string))
-	}
-
-	request_parts := strings.Split(result["request_raw"].(string), " ")
-	if len(request_parts) == 3 {
-		// if the request line is weird, don't try to extract its fields
-		result["method"] = request_parts[0]
-		raw_path := request_parts[1]
-		if url, err := url.Parse(raw_path); err == nil {
-			result["path"] = url.Path
-
-			// if utm source and friends in query, use them as referer
-			if !hasReferer {
-				keys := []string{"ref", "referer", "referrer", "utm_source"}
-				query := url.Query()
-				for _, key := range keys {
-					if query.Has(key) {
-						result["referer"] = stripUrlSource(query.Get(key))
-						break
-					}
-				}
-			}
-
-		} else {
-			result["path"] = raw_path
-		}
-	}
-
-	return result, nil
-}
-
-func stripUrlSource(value string) string {
-	value = strings.TrimPrefix(value, "http://")
-	value = strings.TrimPrefix(value, "https://")
-	value = strings.TrimPrefix(value, "www.")
-	value = strings.TrimSuffix(value, "/")
-	return value
 }
 
 func timeFromLogFormat(timestamp string) (time.Time, error) {

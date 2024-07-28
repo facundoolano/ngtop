@@ -46,7 +46,6 @@ func InitDB(dbPath string) (*dbSession, error) {
 			request_raw		TEXT NOT NULL,
 			user_agent_raw 	TEXT,
 			status			INTEGER,
-			bytes_sent		INTEGER,
 			referer 		TEXT COLLATE NOCASE,
 
 			method			TEXT COLLATE NOCASE,
@@ -56,7 +55,6 @@ func InitDB(dbPath string) (*dbSession, error) {
 			device		 	TEXT COLLATE NOCASE,
 			ua_url		 	TEXT,
 			ua_type		 	TEXT COLLATE NOCASE,
-
 
 			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);

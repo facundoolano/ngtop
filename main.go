@@ -209,7 +209,7 @@ func loadLogs(logFormat string, logPathPattern string, dbs *dbSession) error {
 		return err
 	}
 
-	err = ProcessAccessLogs(logFormat, logFiles, lastSeenTime, func(logLineFields map[string]interface{}) error {
+	err = ProcessAccessLogs(logFormat, logFiles, lastSeenTime, func(logLineFields map[string]string) error {
 		queryValues := make([]interface{}, len(dbColumns))
 		for i, field := range dbColumns {
 			queryValues[i] = logLineFields[field]
