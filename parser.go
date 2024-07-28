@@ -70,17 +70,17 @@ func init() {
 	}
 }
 
+// TODO
 func FormatToRegex(format string) *regexp.Regexp {
 	chars := []rune(format)
 	var newFormat string
 
-	// comesFromSpace is used to tell, when a var is found, if it is expected to contain spaces
+	// previousWasSpace is used to tell, when a var is found, if it is expected to contain spaces
 	// without knowing which characters are used to sorround it, eg: "$http_user_agent" [$time_local]
-	// FIXME maybe better to preserve previous char
-	comesFromSpace := true
+	previousWasSpace := true
 	for i := 0; i < len(chars); i++ {
 		if chars[i] != '$' {
-			comesFromSpace = chars[i] == ' '
+			previousWasSpace = chars[i] == ' '
 			newFormat += regexp.QuoteMeta(string(chars[i]))
 		} else {
 			// found a varname, process it
@@ -89,15 +89,18 @@ func FormatToRegex(format string) *regexp.Regexp {
 				varname += string(chars[j])
 			}
 			i += len(varname)
-			fmt.Printf("LALA variable is %s\n", varname)
-			if groupname, knownVar := LOGVAR_TO_NAME[varname]; knownVar {
-				if comesFromSpace {
+
+			// write the proper capture group to the format regex pattern
+			if groupname, isKnownField := LOGVAR_TO_NAME[varname]; isKnownField {
+				// if the var matches a field we care to extract, use a named group
+				if previousWasSpace {
 					newFormat += "(?P<" + groupname + ">\\S+)"
 				} else {
 					newFormat += "(?P<" + groupname + ">.*?)"
 				}
 			} else {
-				if comesFromSpace {
+				// otherwise just add a nameless group that ensures matching
+				if previousWasSpace {
 					newFormat += "(?:\\S+)"
 				} else {
 					newFormat += "(?:.*?)"
