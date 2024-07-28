@@ -55,6 +55,9 @@ var NowTimeFun = time.Now
 const DEFAULT_PATH_PATTERN = "/var/log/nginx/access.log*"
 const DEFAULT_DB_PATH = "./ngtop.db"
 
+// TODO replace with 'combined' once alias support is added
+const DEFAULT_LOG_FORMAT = `$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"`
+
 func main() {
 	// Optionally enable internal logger
 	if os.Getenv("NGTOP_LOG") == "" {
@@ -71,12 +74,17 @@ func main() {
 		logPathPattern = envLogsPath
 	}
 
+	logFormat := DEFAULT_LOG_FORMAT
+	if envLogFormat := os.Getenv("NGTOP_LOG_FORMAT"); envLogFormat != "" {
+		logFormat = envLogFormat
+	}
+
 	ctx, spec := querySpecFromCLI()
 	dbs, err := InitDB(dbPath)
 	ctx.FatalIfErrorf(err)
 	defer dbs.Close()
 
-	err = loadLogs(logPathPattern, dbs)
+	err = loadLogs(logFormat, logPathPattern, dbs)
 	ctx.FatalIfErrorf(err)
 
 	columnNames, rowValues, err := dbs.QueryTop(spec)
@@ -187,7 +195,7 @@ func parseDuration(duration string) (time.Time, error) {
 }
 
 // Parse the most recent nginx access.logs and insert the ones not previously seen into the DB.
-func loadLogs(logPathPattern string, dbs *dbSession) error {
+func loadLogs(logFormat string, logPathPattern string, dbs *dbSession) error {
 	logFiles, err := filepath.Glob(logPathPattern)
 	if err != nil {
 		return err
@@ -201,7 +209,7 @@ func loadLogs(logPathPattern string, dbs *dbSession) error {
 		return err
 	}
 
-	err = ProcessAccessLogs(logFiles, lastSeenTime, func(logLineFields map[string]interface{}) error {
+	err = ProcessAccessLogs(logFormat, logFiles, lastSeenTime, func(logLineFields map[string]interface{}) error {
 		queryValues := make([]interface{}, len(dbColumns))
 		for i, field := range dbColumns {
 			queryValues[i] = logLineFields[field]
