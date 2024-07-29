@@ -35,7 +35,7 @@ const DEFAULT_LOG_FORMAT = `$remote_addr - $remote_user [$time_local] "$request"
 
 func main() {
 	// Optionally enable internal logger
-	if os.Getenv("NGTOP_LOG") == "" {
+	if os.Getenv("NGTOP_DEBUG") == "" {
 		log.Default().SetOutput(io.Discard)
 	}
 
