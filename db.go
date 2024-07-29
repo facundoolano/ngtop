@@ -20,6 +20,7 @@ type RequestCountSpec struct {
 
 type dbSession struct {
 	db         *sql.DB
+	columns    []string
 	insertTx   *sql.Tx
 	insertStmt *sql.Stmt
 }
@@ -39,9 +40,11 @@ func InitDB(dbPath string, fields []*LogField) (*dbSession, error) {
 
 	// TODO consider adding indexes according to expected queries
 
-	var columns string
-	for _, field := range fields {
-		columns += fmt.Sprintf("%s %s,\n", field.ColumnName, field.ColumnSpec)
+	var columnSpecs string
+	columns := make([]string, len(fields))
+	for i, field := range fields {
+		columns[i] = field.ColumnName
+		columnSpecs += fmt.Sprintf("%s %s,\n", field.ColumnName, field.ColumnSpec)
 	}
 
 	sqlStmt := fmt.Sprintf(`
@@ -49,10 +52,10 @@ func InitDB(dbPath string, fields []*LogField) (*dbSession, error) {
 			id 				INTEGER NOT NULL PRIMARY KEY,
 			%s
 			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		);`, columns)
+		);`, columnSpecs)
 
 	_, err = db.Exec(sqlStmt)
-	return &dbSession{db: db}, err
+	return &dbSession{db: db, columns: columns}, err
 }
 
 func (dbs *dbSession) Close() {
@@ -60,7 +63,7 @@ func (dbs *dbSession) Close() {
 }
 
 // Prepare a transaction to insert a new batch of log entries, returning the time of the last seen log entry.
-func (dbs *dbSession) PrepareForUpdate(columns []string) (*time.Time, error) {
+func (dbs *dbSession) PrepareForUpdate() (*time.Time, error) {
 	// we want to avoid processed files that were already processed in the past.  but we still want to add new log entries
 	// from the most recent files, which may have been extended since we last saw them.
 	// Since there is no "uniqueness" in logs (even the same ip can make the same request at the same second ---I checked),
@@ -87,8 +90,8 @@ func (dbs *dbSession) PrepareForUpdate(columns []string) (*time.Time, error) {
 	}
 	dbs.insertTx = tx
 
-	insertValuePlaceholder := strings.TrimSuffix(strings.Repeat("?,", len(columns)), ",")
-	insertStmt, err := dbs.insertTx.Prepare(fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(columns, ","), insertValuePlaceholder))
+	insertValuePlaceholder := strings.TrimSuffix(strings.Repeat("?,", len(dbs.columns)), ",")
+	insertStmt, err := dbs.insertTx.Prepare(fmt.Sprintf("INSERT INTO access_logs(%s) values(%s);", strings.Join(dbs.columns, ","), insertValuePlaceholder))
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +99,7 @@ func (dbs *dbSession) PrepareForUpdate(columns []string) (*time.Time, error) {
 	return lastSeemTime, nil
 }
 
-func (dbs *dbSession) AddLogEntry(values ...any) error {
+func (dbs *dbSession) AddLogEntry(values []any) error {
 	_, err := dbs.insertStmt.Exec(values...)
 	return err
 }

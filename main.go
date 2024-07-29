@@ -56,14 +56,14 @@ func main() {
 		logFormat = envLogFormat
 	}
 
-	logFormatRegex, fields := ParseFormat(logFormat)
+	parser := NewParser(logFormat)
 
 	ctx, spec := querySpecFromCLI()
-	dbs, err := InitDB(dbPath, fields)
+	dbs, err := InitDB(dbPath, parser.Fields)
 	ctx.FatalIfErrorf(err)
 	defer dbs.Close()
 
-	err = loadLogs(logFormatRegex, fields, logPathPattern, dbs)
+	err = loadLogs(parser, logPathPattern, dbs)
 	ctx.FatalIfErrorf(err)
 
 	columnNames, rowValues, err := dbs.QueryTop(spec)
@@ -174,31 +174,21 @@ func parseDuration(duration string) (time.Time, error) {
 }
 
 // Parse the most recent nginx access.logs and insert the ones not previously seen into the DB.
-func loadLogs(logFormatRegex *regexp.Regexp, fields []*LogField, logPathPattern string, dbs *dbSession) error {
+func loadLogs(parser *LogParser, logPathPattern string, dbs *dbSession) error {
 	logFiles, err := filepath.Glob(logPathPattern)
 	if err != nil {
 		return err
 	}
 
-	dbColumns := make([]string, len(fields))
-	for i, field := range fields {
-		dbColumns[i] = field.ColumnName
-	}
-
-	lastSeenTime, err := dbs.PrepareForUpdate(dbColumns)
+	// Get the last log time to know when to stop parsing, and prepare a transaction to insert newer entries
+	lastSeenTime, err := dbs.PrepareForUpdate()
 	if err != nil {
 		return err
 	}
 
-	err = ProcessAccessLogs(logFormatRegex, logFiles, lastSeenTime, func(logLineFields map[string]string) error {
-		queryValues := make([]interface{}, len(dbColumns))
-		for i, field := range dbColumns {
-			queryValues[i] = logLineFields[field]
-		}
-		return dbs.AddLogEntry(queryValues...)
-	})
+	err = parser.Parse(logFiles, lastSeenTime, dbs.AddLogEntry)
 
-	// Rollback or commit before returning, depending on error
+	// Rollback or commit before returning, depending on the error value
 	return dbs.FinishUpdate(err)
 }
 

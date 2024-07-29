@@ -265,12 +265,12 @@ func runCommand(t *testing.T, logs string, cliArgs []string) ([]string, [][]stri
 	os.Args = append([]string{"ngtop"}, cliArgs...)
 	_, spec := querySpecFromCLI()
 
-	logFormatRegex, fields := ParseFormat(DEFAULT_LOG_FORMAT)
-	dbs, err := InitDB(dbFile.Name(), fields)
+	parser := NewParser(DEFAULT_LOG_FORMAT)
+	dbs, err := InitDB(dbFile.Name(), parser.Fields)
 	assertEqual(t, err, nil)
 	defer dbs.Close()
 
-	err = loadLogs(logFormatRegex, fields, logFile.Name(), dbs)
+	err = loadLogs(parser, logFile.Name(), dbs)
 	assertEqual(t, err, nil)
 	columnNames, rowValues, err := dbs.QueryTop(spec)
 	assertEqual(t, err, nil)
