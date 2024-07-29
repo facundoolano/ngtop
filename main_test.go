@@ -241,8 +241,8 @@ func TestWhereNegation(t *testing.T) {
 
 func TestCustomFormat(t *testing.T) {
 	format := `$remote_addr [$time_iso8601] $server_name $document_root $host $uri $content_type`
-	sample := `xx.xx.xx.xx [2024-07-29T19:38:49+00:00] jorge.olano.dev /var/www/jorge jorge.olano.dev /index.html -
-xx.xx.xx.xx [2024-07-29T19:38:49+00:00] jorge.olano.dev /var/www/jorge jorge.olano.dev /assets/css/main.css -`
+	sample := `xx.xx.xx.xx [2024-07-24T00:00:49+00:00] jorge.olano.dev /var/www/jorge jorge.olano.dev /index.html -
+xx.xx.xx.xx [2024-07-24T00:00:51+00:00] jorge.olano.dev /var/www/jorge jorge.olano.dev /assets/css/main.css -`
 	columns, rows := runCommand(t, format, sample, []string{})
 	assertEqual(t, columns, []string{"#reqs"})
 	assertEqual(t, rows[0][0], "2")

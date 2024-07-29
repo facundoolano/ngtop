@@ -34,6 +34,12 @@ var KNOWN_FIELDS = []LogField{
 		Parse:        parseTime,
 	},
 	{
+		LogFormatVar: "time_iso8601",
+		ColumnName:   "time",
+		ColumnSpec:   "TIMESTAMP NOT NULL",
+		Parse:        parseIsoTime,
+	},
+	{
 		LogFormatVar:       "request",
 		ColumnName:         "request_raw",
 		ColumnSpec:         "TEXT",
@@ -130,6 +136,14 @@ func stripUrlSource(value string) string {
 // FIXME error instead of panic?
 func parseTime(timestamp string) string {
 	t, err := time.Parse(LOG_DATE_LAYOUT, timestamp)
+	if err != nil {
+		panic("can't parse log timestamp " + timestamp)
+	}
+	return t.Format(DB_DATE_LAYOUT)
+}
+
+func parseIsoTime(timestamp string) string {
+	t, err := time.Parse("2006-01-02T15:04:05-07:00", timestamp)
 	if err != nil {
 		panic("can't parse log timestamp " + timestamp)
 	}
