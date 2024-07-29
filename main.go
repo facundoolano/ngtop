@@ -180,25 +180,21 @@ func loadLogs(parser *LogParser, logPathPattern string, dbs *dbSession) error {
 		return err
 	}
 
-	dbColumns := make([]string, len(parser.Fields))
-	for i, field := range parser.Fields {
-		dbColumns[i] = field.ColumnName
-	}
-
-	lastSeenTime, err := dbs.PrepareForUpdate(dbColumns)
+	// Get the last log time to know when to stop parsing, and prepare a transaction to insert newer entries
+	lastSeenTime, err := dbs.PrepareForUpdate()
 	if err != nil {
 		return err
 	}
 
 	err = parser.Parse(logFiles, lastSeenTime, func(logLineFields map[string]string) error {
-		queryValues := make([]interface{}, len(dbColumns))
-		for i, field := range dbColumns {
+		queryValues := make([]interface{}, len(dbs.columns))
+		for i, field := range dbs.columns {
 			queryValues[i] = logLineFields[field]
 		}
 		return dbs.AddLogEntry(queryValues...)
 	})
 
-	// Rollback or commit before returning, depending on error
+	// Rollback or commit before returning, depending on the error value
 	return dbs.FinishUpdate(err)
 }
 

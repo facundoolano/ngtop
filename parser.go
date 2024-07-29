@@ -277,7 +277,7 @@ func parseLogLine(pattern *regexp.Regexp, line string) (map[string]string, error
 	result := make(map[string]string)
 	for i, name := range pattern.SubexpNames() {
 		field := COLUMN_NAME_TO_FIELD[name]
-		if i != 0 && name != "" && match[i] != "-" {
+		if name != "" && match[i] != "-" {
 			if field.Parse != nil {
 				result[name] = field.Parse(match[i])
 			} else {
