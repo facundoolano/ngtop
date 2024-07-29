@@ -133,10 +133,43 @@ func init() {
 
 const LOG_DATE_LAYOUT = "02/Jan/2006:15:04:05 -0700"
 
+type LogParser struct {
+	formatRegex *regexp.Regexp
+	Fields      []*LogField
+}
+
+func NewParser(format string) *LogParser {
+	regex := formatToRegex(format)
+
+	// pick the subset of fields deducted from the regex, plus their derived fields
+	// use a map to remove duplicates
+	fieldSubset := make(map[string]*LogField)
+	for _, name := range regex.SubexpNames() {
+		if name == "" {
+			continue
+		}
+		fieldSubset[name] = COLUMN_NAME_TO_FIELD[name]
+
+		for _, derived := range COLUMN_NAME_TO_FIELD[name].DerivedFields {
+			fieldSubset[derived] = COLUMN_NAME_TO_FIELD[derived]
+		}
+	}
+
+	// turn the map into a valuelist
+	fields := make([]*LogField, 0)
+	for _, field := range fieldSubset {
+		fields = append(fields, field)
+	}
+
+	return &LogParser{
+		formatRegex: regex,
+		Fields:      fields,
+	}
+}
+
 // Parse the fields in the nginx access logs since the `until` time, passing them as a map into the `processFun`.
 // Processing is interrupted when a log older than `until` is found.
-func ProcessAccessLogs(
-	logFormatRegex *regexp.Regexp,
+func (parser LogParser) Parse(
 	logFiles []string,
 	until *time.Time,
 	processFun func(map[string]string) error,
@@ -166,7 +199,7 @@ func ProcessAccessLogs(
 		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			line := scanner.Text()
-			values, err := parseLogLine(logFormatRegex, line)
+			values, err := parseLogLine(parser.formatRegex, line)
 			if err != nil {
 				return err
 			}
@@ -190,32 +223,6 @@ func ProcessAccessLogs(
 	}
 
 	return nil
-}
-
-func ParseFormat(format string) (*regexp.Regexp, []*LogField) {
-	regex := formatToRegex(format)
-
-	// pick the subset of fields deducted from the regex, plus their derived fields
-	// use a map to remove duplicates
-	fieldSubset := make(map[string]*LogField)
-	for _, name := range regex.SubexpNames() {
-		if name == "" {
-			continue
-		}
-		fieldSubset[name] = COLUMN_NAME_TO_FIELD[name]
-
-		for _, derived := range COLUMN_NAME_TO_FIELD[name].DerivedFields {
-			fieldSubset[derived] = COLUMN_NAME_TO_FIELD[derived]
-		}
-	}
-
-	// turn the map into a valuelist
-	fields := make([]*LogField, 0)
-	for _, field := range fieldSubset {
-		fields = append(fields, field)
-	}
-
-	return regex, fields
 }
 
 // TODO
