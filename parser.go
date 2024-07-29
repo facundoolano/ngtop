@@ -32,12 +32,14 @@ type LogParser struct {
 }
 
 func NewParser(format string) *LogParser {
-	regex := formatToRegex(format)
+	parser := LogParser{
+		formatRegex: formatToRegex(format),
+	}
 
 	// pick the subset of fields deducted from the regex, plus their derived fields
 	// use a map to remove duplicates
 	fieldSubset := make(map[string]*LogField)
-	for _, name := range regex.SubexpNames() {
+	for _, name := range parser.formatRegex.SubexpNames() {
 		if name == "" {
 			continue
 		}
@@ -49,15 +51,11 @@ func NewParser(format string) *LogParser {
 	}
 
 	// turn the map into a valuelist
-	fields := make([]*LogField, 0)
 	for _, field := range fieldSubset {
-		fields = append(fields, field)
+		parser.Fields = append(parser.Fields, field)
 	}
 
-	return &LogParser{
-		formatRegex: regex,
-		Fields:      fields,
-	}
+	return &parser
 }
 
 // Parse the fields in the nginx access logs since the `until` time, passing them as a map into the `processFun`.
