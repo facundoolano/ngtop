@@ -41,7 +41,7 @@ func InitDB(dbPath string, fields []*LogField) (*dbSession, error) {
 
 	var columns string
 	for _, field := range fields {
-		columns += fmt.Sprintf("%s %s,\n", field.ColumnName, field.ColumnName)
+		columns += fmt.Sprintf("%s %s,\n", field.ColumnName, field.ColumnSpec)
 	}
 
 	sqlStmt := fmt.Sprintf(`
