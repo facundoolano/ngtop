@@ -107,11 +107,11 @@ xx.xx.xx.xx - - [24/Jul/2024:00:06:41 +0000] "GET /blog/a-note-on-essential-comp
 xx.xx.xx.xx - - [24/Jul/2024:00:06:41 +0000] "GET /blog/posdata-de-borges-y-bioy HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9"`
 
 func TestBasicQuery(t *testing.T) {
-	columns, rows := runCommand(t, SAMPLE_LOGS, []string{})
+	columns, rows := runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{})
 	assertEqual(t, columns, []string{"#reqs"})
 	assertEqual(t, rows[0][0], "11")
 
-	columns, rows = runCommand(t, SAMPLE_LOGS, []string{"url"})
+	columns, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url"})
 	assertEqual(t, columns, []string{"path", "#reqs"})
 	assertEqual(t, len(rows), 5)
 	assertEqual(t, rows[0], []string{"/feed.xml", "3"})
@@ -122,36 +122,36 @@ func TestBasicQuery(t *testing.T) {
 }
 
 func TestDateFiltering(t *testing.T) {
-	_, rows := runCommand(t, SAMPLE_LOGS, []string{})
+	_, rows := runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{})
 	assertEqual(t, rows[0][0], "11")
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"-s", "1m"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"-s", "1m"})
 	assertEqual(t, rows[0][0], "3")
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"-u", "1m"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"-u", "1m"})
 	assertEqual(t, rows[0][0], "8")
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"-s", "4m", "-u", "1m"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"-s", "4m", "-u", "1m"})
 	assertEqual(t, rows[0][0], "1")
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"-s", "1h"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"-s", "1h"})
 	assertEqual(t, rows[0][0], "11")
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"-u", "1h"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"-u", "1h"})
 	assertEqual(t, rows[0][0], "0")
 }
 
 func TestLimit(t *testing.T) {
-	_, rows := runCommand(t, SAMPLE_LOGS, []string{"url"})
+	_, rows := runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url"})
 	assertEqual(t, len(rows), 5)
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-l", "3"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-l", "3"})
 	assertEqual(t, len(rows), 3)
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-l", "10"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-l", "10"})
 	assertEqual(t, len(rows), 8) // not that many distinct urls
 }
 
 func TestMultiField(t *testing.T) {
-	columns, rows := runCommand(t, SAMPLE_LOGS, []string{"url", "method"})
+	columns, rows := runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "method"})
 	assertEqual(t, columns, []string{"path", "method", "#reqs"})
 	assertEqual(t, len(rows), 5)
 	assertEqual(t, rows[0], []string{"/feed.xml", "GET", "3"})
@@ -160,19 +160,19 @@ func TestMultiField(t *testing.T) {
 	assertEqual(t, rows[3][1], "GET")
 	assertEqual(t, rows[4][1], "GET")
 
-	columns, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "status"})
+	columns, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "status"})
 	assertEqual(t, columns, []string{"path", "status", "#reqs"})
 	assertEqual(t, len(rows), 5)
 	assertEqual(t, rows[0], []string{"/feed.xml", "200", "3"})
 	assertEqual(t, rows[1], []string{"/feed", "301", "2"})
 
-	columns, rows = runCommand(t, SAMPLE_LOGS, []string{"method", "status"})
+	columns, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"method", "status"})
 	assertEqual(t, columns, []string{"method", "status", "#reqs"})
 	assertEqual(t, len(rows), 2)
 	assertEqual(t, rows[0], []string{"GET", "301", "6"})
 	assertEqual(t, rows[1], []string{"GET", "200", "5"})
 
-	columns, rows = runCommand(t, SAMPLE_LOGS, []string{"status", "method"})
+	columns, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"status", "method"})
 	assertEqual(t, columns, []string{"status", "method", "#reqs"})
 	assertEqual(t, len(rows), 2)
 	assertEqual(t, rows[0], []string{"301", "GET", "6"})
@@ -180,63 +180,81 @@ func TestMultiField(t *testing.T) {
 }
 
 func TestWhereFilter(t *testing.T) {
-	columns, rows := runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=200"})
+	columns, rows := runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "status=200"})
 	assertEqual(t, columns, []string{"path", "#reqs"})
 	assertEqual(t, len(rows), 3)
 	assertEqual(t, rows[0], []string{"/feed.xml", "3"})
 	assertEqual(t, rows[1][1], "1")
 	assertEqual(t, rows[2][1], "1")
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=301", "-l", "10"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "status=301", "-l", "10"})
 	assertEqual(t, len(rows), 5)
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "method=GET"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "method=GET"})
 	assertEqual(t, len(rows), 5)
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "method=get"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "method=get"})
 	assertEqual(t, len(rows), 5)
 }
 
 func TestWhereMultipleValues(t *testing.T) {
-	_, rows := runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=200", "-w", "status=301"})
+	_, rows := runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "status=200", "-w", "status=301"})
 	assertEqual(t, len(rows), 5)
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=200", "-w", "status=301", "-l", "10"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "status=200", "-w", "status=301", "-l", "10"})
 	assertEqual(t, len(rows), 8)
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "ua=feedi"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "ua=feedi"})
 	assertEqual(t, len(rows), 2)
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "ua=feedi", "-w", "status=200"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "ua=feedi", "-w", "status=200"})
 	assertEqual(t, len(rows), 1)
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "ua=feedi", "-w", "status=200", "-w", "status=301"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "ua=feedi", "-w", "status=200", "-w", "status=301"})
 	assertEqual(t, len(rows), 2)
 }
 
 func TestWherePattern(t *testing.T) {
-	_, rows := runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "url=/feed%"})
+	_, rows := runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "url=/feed%"})
 	assertEqual(t, len(rows), 2)
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "url=/blog/%"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "url=/blog/%"})
 	assertEqual(t, len(rows), 5)
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=3%"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "status=3%"})
 	assertEqual(t, len(rows), 5)
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status=2%"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "status=2%"})
 	assertEqual(t, len(rows), 3)
 }
 
 func TestWhereNegation(t *testing.T) {
-	_, rows := runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status!=200", "-l", "10"})
+	_, rows := runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "status!=200", "-l", "10"})
 	assertEqual(t, len(rows), 5)
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status!=301", "-l", "10"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "status!=301", "-l", "10"})
 	assertEqual(t, len(rows), 3)
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status!=2%", "-l", "10"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "status!=2%", "-l", "10"})
 	assertEqual(t, len(rows), 5)
 
-	_, rows = runCommand(t, SAMPLE_LOGS, []string{"url", "-w", "status!=3%", "-l", "10"})
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "status!=3%", "-l", "10"})
 	assertEqual(t, len(rows), 3)
+}
+
+func TestCustomFormat(t *testing.T) {
+	format := `$remote_addr [$time_iso8601] $server_name $document_root $host $uri $content_type`
+	sample := `xx.xx.xx.xx [2024-07-24T00:00:49+00:00] jorge.olano.dev /var/www/jorge jorge.olano.dev /index.html -
+xx.xx.xx.xx [2024-07-24T00:00:51+00:00] jorge.olano.dev /var/www/jorge jorge.olano.dev /assets/css/main.css -`
+	columns, rows := runCommand(t, format, sample, []string{})
+	assertEqual(t, columns, []string{"#reqs"})
+	assertEqual(t, rows[0][0], "2")
+
+	columns, rows = runCommand(t, format, sample, []string{"uri"})
+	assertEqual(t, columns, []string{"path", "#reqs"})
+	assertEqual(t, len(rows), 2)
+
+	columns, rows = runCommand(t, format, sample, []string{"host"})
+	assertEqual(t, columns, []string{"host", "#reqs"})
+	assertEqual(t, len(rows), 1)
+	assertEqual(t, rows[0][0], "jorge.olano.dev")
 }
 
 func TestMultipleLogFiles(t *testing.T) {
@@ -249,7 +267,7 @@ func TestMultipleLogFiles(t *testing.T) {
 
 // ------ HELPERS --------
 
-func runCommand(t *testing.T, logs string, cliArgs []string) ([]string, [][]string) {
+func runCommand(t *testing.T, format string, logs string, cliArgs []string) ([]string, [][]string) {
 	// write the logs to a temp file, and point the NGTOP_LOGS_PATH env to it
 	logFile, err := os.CreateTemp("", "access.log")
 	assertEqual(t, err, nil)
@@ -265,7 +283,7 @@ func runCommand(t *testing.T, logs string, cliArgs []string) ([]string, [][]stri
 	os.Args = append([]string{"ngtop"}, cliArgs...)
 	_, spec := querySpecFromCLI()
 
-	parser := NewParser(DEFAULT_LOG_FORMAT)
+	parser := NewParser(format)
 	dbs, err := InitDB(dbFile.Name(), parser.Fields)
 	assertEqual(t, err, nil)
 	defer dbs.Close()

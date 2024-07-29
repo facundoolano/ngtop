@@ -31,8 +31,6 @@ var NowTimeFun = time.Now
 // overridable with NGTOP_LOGS_PATH env var
 const DEFAULT_PATH_PATTERN = "/var/log/nginx/access.log*"
 const DEFAULT_DB_PATH = "./ngtop.db"
-
-// TODO replace with 'combined' once alias support is added
 const DEFAULT_LOG_FORMAT = `$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"`
 
 func main() {
