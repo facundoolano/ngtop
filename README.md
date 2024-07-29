@@ -145,5 +145,9 @@ Count non successful responses:
 The command-line arguments and flags are intended exclusively to express a requests count query. The configuration, which isn't expected to change across command invocations, is left to environment variables:
 
 - `NGTOP_LOGS_PATH`: path pattern to find the nginx access logs. Defaults to `/var/log/nginx/access.log*`. The pattern is expanded using Go's [`path/filepath.Glob`](https://pkg.go.dev/path/filepath#Glob).
+- `NGTOP_LOG_FORMAT`: The nginx log_format specification to parse the log entries. By default combined logs are assumed, which is equivalent to:
+  ```
+  NGTOP_LOG_FORMAT='$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"'
+  ```
 - `NGTOP_DEBUG`: when set, internal logs will be printed to standard output.
 - `NGTOP_DB`: location of the SQLite db where the parsed logs are stored. Defaults to `./ngtop.db`.
