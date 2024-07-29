@@ -246,6 +246,15 @@ xx.xx.xx.xx [2024-07-24T00:00:51+00:00] jorge.olano.dev /var/www/jorge jorge.ola
 	columns, rows := runCommand(t, format, sample, []string{})
 	assertEqual(t, columns, []string{"#reqs"})
 	assertEqual(t, rows[0][0], "2")
+
+	columns, rows = runCommand(t, format, sample, []string{"uri"})
+	assertEqual(t, columns, []string{"path", "#reqs"})
+	assertEqual(t, len(rows), 2)
+
+	columns, rows = runCommand(t, format, sample, []string{"host"})
+	assertEqual(t, columns, []string{"host", "#reqs"})
+	assertEqual(t, len(rows), 1)
+	assertEqual(t, rows[0][0], "jorge.olano.dev")
 }
 
 func TestMultipleLogFiles(t *testing.T) {

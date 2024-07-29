@@ -73,12 +73,24 @@ var KNOWN_FIELDS = []LogField{
 		ColumnSpec:   "INTEGER",
 	},
 	{
+		LogFormatVar: "uri",
+		CLINames:     []string{"path", "url", "uri"},
+		ColumnName:   "path",
+		ColumnSpec:   "TEXT",
+	},
+	{
+		LogFormatVar: "host",
+		CLINames:     []string{"host", "server"},
+		ColumnName:   "host",
+		ColumnSpec:   "TEXT",
+	},
+	{
 		CLINames:   []string{"method"},
 		ColumnName: "method",
 		ColumnSpec: "TEXT COLLATE NOCASE",
 	},
 	{
-		CLINames:   []string{"path", "url"},
+		CLINames:   []string{"path", "url", "uri"},
 		ColumnName: "path",
 		ColumnSpec: "TEXT",
 	},
