@@ -12,18 +12,6 @@ import (
 	"time"
 )
 
-func init() {
-	for _, field := range KNOWN_FIELDS {
-		COLUMN_NAME_TO_FIELD[field.ColumnName] = &field
-		if field.LogFormatVar != "" {
-			LOGVAR_TO_FIELD[field.LogFormatVar] = &field
-		}
-		for _, name := range field.CLINames {
-			CLI_NAME_TO_FIELD[name] = &field
-		}
-	}
-}
-
 const LOG_DATE_LAYOUT = "02/Jan/2006:15:04:05 -0700"
 
 type LogParser struct {
