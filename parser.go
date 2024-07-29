@@ -172,7 +172,7 @@ func NewParser(format string) *LogParser {
 func (parser LogParser) Parse(
 	logFiles []string,
 	until *time.Time,
-	processFun func(map[string]string) error,
+	processFun func([]any) error,
 ) error {
 	var untilStr string
 	if until != nil {
@@ -213,7 +213,11 @@ func (parser LogParser) Parse(
 				return nil
 			}
 
-			if err := processFun(values); err != nil {
+			valueList := make([]any, len(parser.Fields))
+			for i, field := range parser.Fields {
+				valueList[i] = values[field.ColumnName]
+			}
+			if err := processFun(valueList); err != nil {
 				return err
 			}
 		}

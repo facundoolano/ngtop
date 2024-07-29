@@ -99,7 +99,7 @@ func (dbs *dbSession) PrepareForUpdate() (*time.Time, error) {
 	return lastSeemTime, nil
 }
 
-func (dbs *dbSession) AddLogEntry(values ...any) error {
+func (dbs *dbSession) AddLogEntry(values []any) error {
 	_, err := dbs.insertStmt.Exec(values...)
 	return err
 }

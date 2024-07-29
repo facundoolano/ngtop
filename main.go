@@ -186,13 +186,7 @@ func loadLogs(parser *LogParser, logPathPattern string, dbs *dbSession) error {
 		return err
 	}
 
-	err = parser.Parse(logFiles, lastSeenTime, func(logLineFields map[string]string) error {
-		queryValues := make([]interface{}, len(dbs.columns))
-		for i, field := range dbs.columns {
-			queryValues[i] = logLineFields[field]
-		}
-		return dbs.AddLogEntry(queryValues...)
-	})
+	err = parser.Parse(logFiles, lastSeenTime, dbs.AddLogEntry)
 
 	// Rollback or commit before returning, depending on the error value
 	return dbs.FinishUpdate(err)
