@@ -27,13 +27,14 @@ func NewParser(format string) *LogParser {
 	// pick the subset of fields deducted from the regex, plus their derived fields
 	// use a map to remove duplicates
 	fieldSubset := make(map[string]*LogField)
-	for _, name := range parser.formatRegex.SubexpNames() {
-		if name == "" {
+	for _, logvar := range parser.formatRegex.SubexpNames() {
+		if logvar == "" {
 			continue
 		}
-		fieldSubset[name] = COLUMN_NAME_TO_FIELD[name]
+		field := LOGVAR_TO_FIELD[logvar]
+		fieldSubset[field.ColumnName] = field
 
-		for _, derived := range COLUMN_NAME_TO_FIELD[name].DerivedFields {
+		for _, derived := range field.DerivedFields {
 			fieldSubset[derived] = COLUMN_NAME_TO_FIELD[derived]
 		}
 	}
@@ -129,13 +130,12 @@ func formatToRegex(format string) *regexp.Regexp {
 			i += len(varname)
 
 			// write the proper capture group to the format regex pattern
-			if field, isKnownField := LOGVAR_TO_FIELD[varname]; isKnownField {
+			if _, isKnownField := LOGVAR_TO_FIELD[varname]; isKnownField {
 				// if the var matches a field we care to extract, use a named group
-				groupname := field.ColumnName
 				if previousWasSpace {
-					newFormat += "(?P<" + groupname + ">\\S+)"
+					newFormat += "(?P<" + varname + ">\\S+)"
 				} else {
-					newFormat += "(?P<" + groupname + ">.*?)"
+					newFormat += "(?P<" + varname + ">.*?)"
 				}
 			} else {
 				// otherwise just add a nameless group that ensures matching
@@ -162,13 +162,13 @@ func parseLogLine(pattern *regexp.Regexp, line string) (map[string]string, error
 	}
 
 	result := make(map[string]string)
-	for i, name := range pattern.SubexpNames() {
-		field := COLUMN_NAME_TO_FIELD[name]
-		if name != "" && match[i] != "-" {
+	for i, logvar := range pattern.SubexpNames() {
+		field := LOGVAR_TO_FIELD[logvar]
+		if logvar != "" && match[i] != "-" {
 			if field.Parse != nil {
-				result[name] = field.Parse(match[i])
+				result[field.ColumnName] = field.Parse(match[i])
 			} else {
-				result[name] = match[i]
+				result[field.ColumnName] = match[i]
 			}
 
 			if field.ParseDerivedFields != nil {
