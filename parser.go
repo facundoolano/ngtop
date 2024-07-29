@@ -135,7 +135,7 @@ func formatToRegex(format string) *regexp.Regexp {
 		} else {
 			// found a varname, process it
 			varname := ""
-			for j := i + 1; j < len(format) && ((chars[j] >= 'a' && chars[j] <= 'z') || chars[j] == '_'); j++ {
+			for j := i + 1; j < len(format) && isVariableNameRune(chars[j]); j++ {
 				varname += string(chars[j])
 			}
 			i += len(varname)
@@ -161,6 +161,10 @@ func formatToRegex(format string) *regexp.Regexp {
 		}
 	}
 	return regexp.MustCompile(newFormat)
+}
+
+func isVariableNameRune(char rune) bool {
+	return (char >= 'a' && char <= 'z') || char == '_' || (char >= '0' && char <= '9')
 }
 
 func parseLogLine(pattern *regexp.Regexp, line string) (map[string]string, error) {
