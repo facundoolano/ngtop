@@ -30,6 +30,8 @@ type LogField struct {
 	// TODO
 	Parse func(string) string
 	// TODO
+	DerivedFields []string
+	// TODO
 	ParseDerivedFields func(string) map[string]string
 }
 
@@ -45,12 +47,14 @@ var KNOWN_FIELDS = []LogField{
 		LogFormatVar:       "request",
 		ColumnName:         "request_raw",
 		ColumnSpec:         "TEXT",
+		DerivedFields:      []string{"path", "method", "referer"},
 		ParseDerivedFields: parseRequestDerivedFields,
 	},
 	{
 		LogFormatVar:       "http_user_agent",
 		ColumnName:         "user_agent_raw",
 		ColumnSpec:         "TEXT",
+		DerivedFields:      []string{"user_agent", "os", "device", "ua_type", "ua_url"},
 		ParseDerivedFields: parseUserAgentDerivedFields,
 	},
 	{
@@ -111,6 +115,8 @@ var KNOWN_FIELDS = []LogField{
 
 var LOGVAR_TO_FIELD = map[string]*LogField{}
 var COLUMN_NAME_TO_FIELD = map[string]*LogField{}
+
+// TODO revisit, may be better to do this at main instead
 var CLI_NAME_TO_FIELD = map[string]*LogField{}
 
 func init() {
@@ -130,13 +136,11 @@ const LOG_DATE_LAYOUT = "02/Jan/2006:15:04:05 -0700"
 // Parse the fields in the nginx access logs since the `until` time, passing them as a map into the `processFun`.
 // Processing is interrupted when a log older than `until` is found.
 func ProcessAccessLogs(
-	logFormat string,
+	logFormatRegex *regexp.Regexp,
 	logFiles []string,
 	until *time.Time,
 	processFun func(map[string]string) error,
 ) error {
-	logPattern := formatToRegex(logFormat)
-
 	var untilStr string
 	if until != nil {
 		untilStr = until.Format(DB_DATE_LAYOUT)
@@ -162,7 +166,7 @@ func ProcessAccessLogs(
 		scanner := bufio.NewScanner(reader)
 		for scanner.Scan() {
 			line := scanner.Text()
-			values, err := parseLogLine(logPattern, line)
+			values, err := parseLogLine(logFormatRegex, line)
 			if err != nil {
 				return err
 			}
@@ -186,6 +190,32 @@ func ProcessAccessLogs(
 	}
 
 	return nil
+}
+
+func ParseFormat(format string) (*regexp.Regexp, []*LogField) {
+	regex := formatToRegex(format)
+
+	// pick the subset of fields deducted from the regex, plus their derived fields
+	// use a map to remove duplicates
+	fieldSubset := make(map[string]*LogField)
+	for _, name := range regex.SubexpNames() {
+		if name == "" {
+			continue
+		}
+		fieldSubset[name] = COLUMN_NAME_TO_FIELD[name]
+
+		for _, derived := range COLUMN_NAME_TO_FIELD[name].DerivedFields {
+			fieldSubset[derived] = COLUMN_NAME_TO_FIELD[derived]
+		}
+	}
+
+	// turn the map into a valuelist
+	fields := make([]*LogField, 0)
+	for _, field := range fieldSubset {
+		fields = append(fields, field)
+	}
+
+	return regex, fields
 }
 
 // TODO

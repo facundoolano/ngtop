@@ -27,7 +27,7 @@ type dbSession struct {
 const DB_DATE_LAYOUT = "2006-01-02 15:04:05-07:00"
 
 // Open or create the database at the given path.
-func InitDB(dbPath string) (*dbSession, error) {
+func InitDB(dbPath string, fields []*LogField) (*dbSession, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, err
@@ -38,29 +38,19 @@ func InitDB(dbPath string) (*dbSession, error) {
 	}
 
 	// TODO consider adding indexes according to expected queries
-	// FIXME build this dynamically based on the log format columns
-	sqlStmt := `
+
+	var columns string
+	for _, field := range fields {
+		columns += fmt.Sprintf("%s %s,\n", field.ColumnName, field.ColumnSpec)
+	}
+
+	sqlStmt := fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS access_logs (
 			id 				INTEGER NOT NULL PRIMARY KEY,
-			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			%s
+			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`, columns)
 
-			ip				TEXT,
-			time 			TIMESTAMP NOT NULL,
-			request_raw		TEXT NOT NULL,
-			user_agent_raw 	TEXT,
-			status			INTEGER,
-			referer 		TEXT COLLATE NOCASE,
-
-			method			TEXT COLLATE NOCASE,
-			path			TEXT,
-			user_agent	 	TEXT COLLATE NOCASE,
-			os			 	TEXT COLLATE NOCASE,
-			device		 	TEXT COLLATE NOCASE,
-			ua_url		 	TEXT,
-			ua_type		 	TEXT COLLATE NOCASE
-
-		);
-	`
 	_, err = db.Exec(sqlStmt)
 	return &dbSession{db: db}, err
 }

@@ -56,12 +56,14 @@ func main() {
 		logFormat = envLogFormat
 	}
 
+	logFormatRegex, fields := ParseFormat(logFormat)
+
 	ctx, spec := querySpecFromCLI()
-	dbs, err := InitDB(dbPath)
+	dbs, err := InitDB(dbPath, fields)
 	ctx.FatalIfErrorf(err)
 	defer dbs.Close()
 
-	err = loadLogs(logFormat, logPathPattern, dbs)
+	err = loadLogs(logFormatRegex, fields, logPathPattern, dbs)
 	ctx.FatalIfErrorf(err)
 
 	columnNames, rowValues, err := dbs.QueryTop(spec)
@@ -172,21 +174,23 @@ func parseDuration(duration string) (time.Time, error) {
 }
 
 // Parse the most recent nginx access.logs and insert the ones not previously seen into the DB.
-func loadLogs(logFormat string, logPathPattern string, dbs *dbSession) error {
+func loadLogs(logFormatRegex *regexp.Regexp, fields []*LogField, logPathPattern string, dbs *dbSession) error {
 	logFiles, err := filepath.Glob(logPathPattern)
 	if err != nil {
 		return err
 	}
 
-	// FIXME consolidate field list (duplicated knowledge)
-	dbColumns := []string{"ip", "time", "request_raw", "status", "referer", "user_agent_raw", "method", "path", "user_agent", "os", "device", "ua_url", "ua_type"}
+	dbColumns := make([]string, len(fields))
+	for i, field := range fields {
+		dbColumns[i] = field.ColumnName
+	}
 
 	lastSeenTime, err := dbs.PrepareForUpdate(dbColumns)
 	if err != nil {
 		return err
 	}
 
-	err = ProcessAccessLogs(logFormat, logFiles, lastSeenTime, func(logLineFields map[string]string) error {
+	err = ProcessAccessLogs(logFormatRegex, logFiles, lastSeenTime, func(logLineFields map[string]string) error {
 		queryValues := make([]interface{}, len(dbColumns))
 		for i, field := range dbColumns {
 			queryValues[i] = logLineFields[field]
