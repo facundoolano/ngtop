@@ -1,4 +1,4 @@
-package main
+package ngtop
 
 import (
 	"github.com/mileusna/useragent"

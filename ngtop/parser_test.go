@@ -1,8 +1,11 @@
-package main
+package ngtop
 
 import (
+	"reflect"
 	"testing"
 )
+
+const DEFAULT_LOG_FORMAT = `$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"`
 
 func TestFormatRegex(t *testing.T) {
 	line := `xx.xx.xx.xx - - [24/Jul/2024:00:00:28 +0000] "GET /feed HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"`
@@ -51,4 +54,11 @@ func TestRefererOverride(t *testing.T) {
 	result, err = parseLogLine(pattern, line)
 	assertEqual(t, err, nil)
 	assertEqual(t, result["referer"], "olano.dev/feed.xml")
+}
+
+func assertEqual(t *testing.T, a interface{}, b interface{}) {
+	t.Helper()
+	if !reflect.DeepEqual(a, b) {
+		t.Fatalf("%v != %v", a, b)
+	}
 }

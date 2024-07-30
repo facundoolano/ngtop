@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/facundoolano/ngtop/ngtop"
 )
 
 type CommandArgs struct {
@@ -54,10 +55,10 @@ func main() {
 		logFormat = envLogFormat
 	}
 
-	parser := NewParser(logFormat)
+	parser := ngtop.NewParser(logFormat)
 
 	ctx, spec := querySpecFromCLI()
-	dbs, err := InitDB(dbPath, parser.Fields)
+	dbs, err := ngtop.InitDB(dbPath, parser.Fields)
 	ctx.FatalIfErrorf(err)
 	defer dbs.Close()
 
@@ -70,10 +71,10 @@ func main() {
 }
 
 // Parse the command line arguments into a top requests query specification
-func querySpecFromCLI() (*kong.Context, *RequestCountSpec) {
+func querySpecFromCLI() (*kong.Context, *ngtop.RequestCountSpec) {
 	// Parse query spec first, i.e. don't bother with db updates if the command is invalid
-	fieldNames := make([]string, 0, len(CLI_NAME_TO_FIELD))
-	for k := range CLI_NAME_TO_FIELD {
+	fieldNames := make([]string, 0, len(ngtop.CLI_NAME_TO_FIELD))
+	for k := range ngtop.CLI_NAME_TO_FIELD {
 		fieldNames = append(fieldNames, k)
 	}
 
@@ -96,13 +97,13 @@ func querySpecFromCLI() (*kong.Context, *RequestCountSpec) {
 	// translate field name aliases
 	columns := make([]string, len(cli.Fields))
 	for i, field := range cli.Fields {
-		columns[i] = CLI_NAME_TO_FIELD[field].ColumnName
+		columns[i] = ngtop.CLI_NAME_TO_FIELD[field].ColumnName
 	}
 
 	whereConditions, err := resolveWhereConditions(cli.Where)
 	ctx.FatalIfErrorf(err)
 
-	spec := &RequestCountSpec{
+	spec := &ngtop.RequestCountSpec{
 		GroupByMetrics: columns,
 		TimeSince:      since,
 		TimeUntil:      until,
@@ -129,7 +130,7 @@ func resolveWhereConditions(clauses []string) (map[string][]string, error) {
 			return nil, fmt.Errorf("invalid where expression %s", clause)
 		}
 
-		if field, found := CLI_NAME_TO_FIELD[keyvalue[0]]; found {
+		if field, found := ngtop.CLI_NAME_TO_FIELD[keyvalue[0]]; found {
 			conditions[field.ColumnName] = append(conditions[field.ColumnName], keyvalue[1])
 		} else {
 			return nil, fmt.Errorf("unknown field name %s", keyvalue[0])
@@ -172,7 +173,7 @@ func parseDuration(duration string) (time.Time, error) {
 }
 
 // Parse the most recent nginx access.logs and insert the ones not previously seen into the DB.
-func loadLogs(parser *LogParser, logPathPattern string, dbs *dbSession) error {
+func loadLogs(parser *ngtop.LogParser, logPathPattern string, dbs *ngtop.DBSession) error {
 	logFiles, err := filepath.Glob(logPathPattern)
 	if err != nil {
 		return err
