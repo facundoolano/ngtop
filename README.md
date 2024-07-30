@@ -49,7 +49,7 @@ Show the top 5 urls in the last hour:
     $ ngtop url
     $ ngtop path
 
-Show the top 10 urls in the last minute:
+Show the top 5 urls in the last minute:
 
     $ ngtop url -s 1m
 
