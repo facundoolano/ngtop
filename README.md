@@ -127,7 +127,8 @@ Count non successful responses:
 
 - Whenever the program is run, it looks for the nginx access.logs, parses them and stores the data into an SQLite DB.
   - By default, the logs are looked up at `/var/log/nginx/access.log*`, which can be overridden with the `NGTOP_LOGS_PATH` environment variable.
-  - At the moment, the logs are assumed to have the [nginx combined log format](https://nginx.org/en/docs/http/ngx_http_log_module.html#log_format), but this could eventually be made customizable.
+  - By default, the logs are assumed to have the [nginx combined log format](https://nginx.org/en/docs/http/ngx_http_log_module.html#log_format). The format can be customized with `NGTOP_LOG_FORMAT`.
+    - This could likely be made to work with non nginx logs, although that hasn't been tested.
   - Subsequent runs of the program only parse and store the logs up until the time of the previous run.
   - The SQLite DB is stored at `./ngtop.db`, which can be overridden with the `NGTOP_DB` environment variable.
 - The command line arguments express a filtering criteria, used to build the SQL query that counts the requests.
