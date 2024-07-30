@@ -184,10 +184,18 @@ func loadLogs(parser *LogParser, logPathPattern string, dbs *dbSession) error {
 		return err
 	}
 
-	err = parser.Parse(logFiles, lastSeenTime, dbs.AddLogEntry)
+	insertCount := 0
+	err = parser.Parse(logFiles, lastSeenTime, func(values []any) error {
+		insertCount++
+		return dbs.AddLogEntry(values)
+	})
 
 	// Rollback or commit before returning, depending on the error value
-	return dbs.FinishUpdate(err)
+	err = dbs.FinishUpdate(err)
+	if err == nil && insertCount > 0 {
+		log.Printf("inserted %d log entries\n", insertCount)
+	}
+	return err
 }
 
 // Print the query results as a table
