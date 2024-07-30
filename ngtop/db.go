@@ -1,4 +1,4 @@
-package main
+package ngtop
 
 import (
 	"database/sql"
@@ -18,7 +18,7 @@ type RequestCountSpec struct {
 	Where          map[string][]string
 }
 
-type dbSession struct {
+type DBSession struct {
 	db         *sql.DB
 	columns    []string
 	insertTx   *sql.Tx
@@ -28,7 +28,7 @@ type dbSession struct {
 const DB_DATE_LAYOUT = "2006-01-02 15:04:05-07:00"
 
 // Open or create the database at the given path.
-func InitDB(dbPath string, fields []*LogField) (*dbSession, error) {
+func InitDB(dbPath string, fields []*LogField) (*DBSession, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, err
@@ -55,15 +55,15 @@ func InitDB(dbPath string, fields []*LogField) (*dbSession, error) {
 		);`, columnSpecs)
 
 	_, err = db.Exec(sqlStmt)
-	return &dbSession{db: db, columns: columns}, err
+	return &DBSession{db: db, columns: columns}, err
 }
 
-func (dbs *dbSession) Close() {
+func (dbs *DBSession) Close() {
 	dbs.db.Close()
 }
 
 // Prepare a transaction to insert a new batch of log entries, returning the time of the last seen log entry.
-func (dbs *dbSession) PrepareForUpdate() (*time.Time, error) {
+func (dbs *DBSession) PrepareForUpdate() (*time.Time, error) {
 	// we want to avoid processed files that were already processed in the past.  but we still want to add new log entries
 	// from the most recent files, which may have been extended since we last saw them.
 	// Since there is no "uniqueness" in logs (even the same ip can make the same request at the same second ---I checked),
@@ -99,14 +99,14 @@ func (dbs *dbSession) PrepareForUpdate() (*time.Time, error) {
 	return lastSeemTime, nil
 }
 
-func (dbs *dbSession) AddLogEntry(values []any) error {
+func (dbs *DBSession) AddLogEntry(values []any) error {
 	_, err := dbs.insertStmt.Exec(values...)
 	return err
 }
 
 // If the given processing `err` is nil, commit the log insertion transaction,
 // Otherwise roll it back and return the error.
-func (dbs *dbSession) FinishUpdate(err error) error {
+func (dbs *DBSession) FinishUpdate(err error) error {
 	tx := dbs.insertTx
 	dbs.insertTx = nil
 	dbs.insertStmt = nil
@@ -118,7 +118,7 @@ func (dbs *dbSession) FinishUpdate(err error) error {
 }
 
 // Build a query from the spec and execute it, returning the results as stringified values.
-func (dbs *dbSession) QueryTop(spec *RequestCountSpec) ([]string, [][]string, error) {
+func (dbs *DBSession) QueryTop(spec *RequestCountSpec) ([]string, [][]string, error) {
 	queryString, queryArgs := spec.buildQuery()
 
 	rows, err := dbs.db.Query(queryString, queryArgs...)

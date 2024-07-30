@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/facundoolano/ngtop/ngtop"
 )
 
 func TestDurationParsing(t *testing.T) {
@@ -286,8 +288,8 @@ func runCommand(t *testing.T, format string, logs string, cliArgs []string) ([]s
 	os.Args = append([]string{"ngtop"}, cliArgs...)
 	_, spec := querySpecFromCLI()
 
-	parser := NewParser(format)
-	dbs, err := InitDB(dbFile.Name(), parser.Fields)
+	parser := ngtop.NewParser(format)
+	dbs, err := ngtop.InitDB(dbFile.Name(), parser.Fields)
 	assertEqual(t, err, nil)
 	defer dbs.Close()
 
