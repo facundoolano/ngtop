@@ -163,16 +163,17 @@ func (spec *RequestCountSpec) buildQuery() (string, []any) {
 
 		for i, value := range values {
 			whereExpression += column
+			isNotEqual := strings.HasPrefix(value, "!")
+			value = strings.TrimPrefix(value, "!")
+
 			if strings.ContainsRune(value, '%') {
-				if strings.HasPrefix(value, "!") {
-					value = strings.TrimPrefix(value, "!")
+				if isNotEqual {
 					whereExpression += " NOT LIKE ?"
 				} else {
 					whereExpression += " LIKE ?"
 				}
 			} else {
-				if strings.HasPrefix(value, "!") {
-					value = strings.TrimPrefix(value, "!")
+				if isNotEqual {
 					whereExpression += " <> ?"
 				} else {
 					whereExpression += " = ?"
@@ -180,7 +181,11 @@ func (spec *RequestCountSpec) buildQuery() (string, []any) {
 			}
 			queryArgs = append(queryArgs, value)
 			if i < len(values)-1 {
-				whereExpression += " OR "
+				if isNotEqual {
+					whereExpression += " AND "
+				} else {
+					whereExpression += " OR "
+				}
 			}
 		}
 		whereExpression += ") "

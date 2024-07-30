@@ -237,6 +237,9 @@ func TestWhereNegation(t *testing.T) {
 
 	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "status!=3%", "-l", "10"})
 	assertEqual(t, len(rows), 3)
+
+	_, rows = runCommand(t, DEFAULT_LOG_FORMAT, SAMPLE_LOGS, []string{"url", "-w", "url!=/feed%", "-w", "url!=/", "-l", "10"})
+	assertEqual(t, len(rows), 5)
 }
 
 func TestCustomFormat(t *testing.T) {
