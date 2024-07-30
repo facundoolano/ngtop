@@ -23,6 +23,7 @@ func NewParser(format string) *LogParser {
 	parser := LogParser{
 		formatRegex: formatToRegex(format),
 	}
+	log.Printf("log format: %s\nlog pattern: %s\n", format, parser.formatRegex)
 
 	// pick the subset of fields deducted from the regex, plus their derived fields
 	// use a map to remove duplicates
