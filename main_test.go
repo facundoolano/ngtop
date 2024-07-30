@@ -258,7 +258,7 @@ xx.xx.xx.xx [2024-07-24T00:00:51+00:00] jorge.olano.dev /var/www/jorge jorge.ola
 }
 
 func TestMultipleLogFiles(t *testing.T) {
-	// TODO
+	// TODO implement test
 	// more than one file in a dir, honoring the glob pattern
 	// include gzipped value
 }

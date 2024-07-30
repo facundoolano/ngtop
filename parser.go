@@ -15,10 +15,16 @@ import (
 const LOG_DATE_LAYOUT = "02/Jan/2006:15:04:05 -0700"
 
 type LogParser struct {
+	// The regular expression pattern used to extract fields from log entries.
+	// Derived from a format string.
 	formatRegex *regexp.Regexp
-	Fields      []*LogField
+	// The list of fields that can be expected to be extracted from an entry by this parser.
+	// Results from the known fields in the format variables, plus their derived fields.
+	// The parser result values will be in the same order as in this slice.
+	Fields []*LogField
 }
 
+// Returns a new parser instance prepared to process logs in the given format.
 func NewParser(format string) *LogParser {
 	parser := LogParser{
 		formatRegex: formatToRegex(format),
@@ -48,8 +54,10 @@ func NewParser(format string) *LogParser {
 	return &parser
 }
 
-// Parse the fields in the nginx access logs since the `until` time, passing them as a map into the `processFun`.
+// Parse the fields in the nginx access logs since the `until` time, passing them as a slice to the `processFun`,
+// in the same order as they appear in `parser.Fields1`.
 // Processing is interrupted when a log older than `until` is found.
+// Files with '.gz' extension are gzip decompressed before processing; the rest are assumed to be plain text.
 func (parser LogParser) Parse(
 	logFiles []string,
 	until *time.Time,
@@ -110,7 +118,9 @@ func (parser LogParser) Parse(
 	return nil
 }
 
-// TODO
+// Constructs a regular expression from the given format string, converting known variable names
+// as expressed in nginx log format expressions (e.g. `$remote_addr`) into named capture groups
+// (e.g. `(?P<remote_addr>\S+)`).
 func formatToRegex(format string) *regexp.Regexp {
 	chars := []rune(format)
 	var newFormat string
@@ -156,6 +166,9 @@ func isVariableNameRune(char rune) bool {
 	return (char >= 'a' && char <= 'z') || char == '_' || (char >= '0' && char <= '9')
 }
 
+// Parses the given `line` according to the given `pattern`, passing captured variables
+// to parser and derived parser functions as specified by the corresponding LogField.
+// Extracted fields are returned as maps with field.ColumnName as key.
 func parseLogLine(pattern *regexp.Regexp, line string) (map[string]string, error) {
 	match := pattern.FindStringSubmatch(line)
 	if match == nil {
