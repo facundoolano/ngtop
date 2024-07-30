@@ -7,25 +7,31 @@ import (
 	"time"
 )
 
-// TODO
+// This struct provides a declarative specification of a field
+// that can be found in an access log or derived from one.
+// Its attributes configure how the field should be parsed in logs,
+// stored in the db and referred to in the cli.
 type LogField struct {
-	// TODO
+
+	// The variable name for this field in the log format (without the leading $), e.g. `remote_addr`.
+	// Empty for derived fields.
 	LogFormatVar string
-	// TODO
+	// The list of aliases this field can be referred by in the CLI e.g. `{"user_agen", "ua"}`
 	CLINames []string
-	// TODO
+	// The name used to in the DB column for the field. This is considered its canonical name in this program.
 	ColumnName string
-	// TODO
+	// The SQL column specification, e.g. `"TEXT COLLATE NOCASE"` for case insensitive strings
 	ColumnSpec string
-	// TODO
+	// An optional parse function to transform the value extracted from the log field.
 	Parse func(string) string
-	// TODO
+	// A list of fields that can be derived from the original log value.
+	// E.g., `{"path", "method", "referer"}` for the `request` field.
 	DerivedFields []string
-	// TODO
+	// An optional function that extracts derived fields from this one and returns them as a map.
+	// The key of the map should be the ColumnName of the derived field.
 	ParseDerivedFields func(string) map[string]string
 }
 
-// TODO
 var KNOWN_FIELDS = []LogField{
 	{
 		LogFormatVar: "time_local",
