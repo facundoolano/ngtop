@@ -31,10 +31,12 @@ Count requests from the last hour:
     $ ngtop -s 1h
     $ ngtop
 
-Count requests from the last minute, day, or month:
+Count requests from the last second, minute, day, week, or month:
 
+    $ ngtop -s 1s
     $ ngtop -s 1m
     $ ngtop -s 1d
+    $ ngtop -s 1w
     $ ngtop -s 1M
 
 Count requests from the day before:
