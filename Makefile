@@ -20,7 +20,7 @@ minor:
 patch:
 	@$(MAKE) TYPE=patch bump_version
 
-CURRENT=$(shell git describe --tags --abbrev=0)
+CURRENT=$(shell git describe --tags --abbrev=0 | sed 's/^v//')
 MAJOR=$(shell echo $(CURRENT) | cut -d. -f1)
 MINOR=$(shell echo $(CURRENT) | cut -d. -f2)
 PATCH=$(shell echo $(CURRENT) | cut -d. -f3)
