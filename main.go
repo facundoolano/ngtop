@@ -23,6 +23,7 @@ type CommandArgs struct {
 	Until  string   `short:"u" default:"now"  help:"End of the time window to filter logs. Supported units are [s]econds, [m]inutes, [h]ours, [d]ays, [w]eeks, [M]onths"`
 	Limit  int      `short:"l" default:"5" help:"Amount of results to return"`
 	Where  []string `short:"w" optional:"" help:"Filter expressions. Example: -w useragent=Safari -w status=200"`
+	Version kong.VersionFlag `short:"v"`
 }
 
 // Use a var to get current time, allowing for tests to override it
