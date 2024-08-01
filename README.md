@@ -123,7 +123,7 @@ Count total 404 status responses:
 
 Count non successful responses:
 
-    $ ngtop status -w status=4% -status=5%
+    $ ngtop status -w status=4% -w status=5%
 
 ## How it works
 
