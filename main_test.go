@@ -262,6 +262,14 @@ xx.xx.xx.xx [2024-07-24T00:00:51+00:00] jorge.olano.dev /var/www/jorge jorge.ola
 	assertEqual(t, rows[0][0], "jorge.olano.dev")
 }
 
+func TestMismatchedLine(t *testing.T) {
+	sample := `xx.xx.xx.xx - - [24/Jul/2024:00:00:28 +0000] "GET /feed HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+this has a different format
+xx.xx.xx.xx - - [24/Jul/2024:00:00:30 +0000] "GET /feed HTTP/1.1" 301 169 "-" "feedi/0.1.0 (+https://github.com/facundoolano/feedi)"`
+	_, rows := runCommand(t, DEFAULT_LOG_FORMAT, sample, []string{})
+	assertEqual(t, rows[0][0], "2")
+}
+
 func TestMultipleLogFiles(t *testing.T) {
 	// TODO implement test
 	// more than one file in a dir, honoring the glob pattern
