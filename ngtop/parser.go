@@ -90,7 +90,9 @@ func (parser LogParser) Parse(
 			line := scanner.Text()
 			values, err := parseLogLine(parser.formatRegex, line)
 			if err != nil {
-				return err
+				// don't break on parsing error, just skip the line
+				log.Println(err)
+				continue
 			}
 			if values == nil {
 				log.Printf("couldn't parse line %s", line)
