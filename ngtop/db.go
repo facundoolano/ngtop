@@ -64,23 +64,10 @@ func (dbs *DBSession) Close() {
 
 // Prepare a transaction to insert a new batch of log entries, returning the time of the last seen log entry.
 func (dbs *DBSession) PrepareForUpdate() (*time.Time, error) {
-	// we want to avoid processed files that were already processed in the past.  but we still want to add new log entries
-	// from the most recent files, which may have been extended since we last saw them.
-	// Since there is no "uniqueness" in logs (even the same ip can make the same request at the same second ---I checked),
-	// I remove the entries with the highest timestamp, and load everything up until including that timestamp but not older.
-	// The assumption is that any processing was completely finished, not interrupted.
-
 	var lastSeenTimeStr string
 	var lastSeemTime *time.Time
 	// this query error is acceptable in case of db not exists or empty
 	if err := dbs.db.QueryRow("SELECT max(time) FROM access_logs").Scan(&lastSeenTimeStr); err == nil {
-		query := "DELETE FROM access_logs WHERE time = ?"
-		log.Printf("query: %s %s\n", query, lastSeenTimeStr)
-		_, err := dbs.db.Exec(query, lastSeenTimeStr)
-		if err != nil {
-			return nil, err
-		}
-
 		t, _ := time.Parse(DB_DATE_LAYOUT, lastSeenTimeStr)
 		lastSeemTime = &t
 	}

@@ -86,6 +86,7 @@ func (parser LogParser) Parse(
 		}
 
 		scanner := bufio.NewScanner(reader)
+		alreadySeenFile := false
 		for scanner.Scan() {
 			line := scanner.Text()
 			values, err := parseLogLine(parser.formatRegex, line)
@@ -100,9 +101,11 @@ func (parser LogParser) Parse(
 			}
 
 			if untilStr != "" && values["time"] < untilStr {
-				// already caught up, no need to continue processing
-				log.Printf("stopped parsing at %s", values["time"])
-				return nil
+				// if this file contains entries older than the untilStr, it means we already parsed part of it before
+				// since the files contains oldest entries at the beginning, we need to keep parsing until the end to get
+				// all the updates, but we flag it as already seen so we skip parsing newer ones
+				alreadySeenFile = true
+				continue
 			}
 
 			valueList := make([]any, len(parser.Fields))
@@ -115,6 +118,11 @@ func (parser LogParser) Parse(
 		}
 		if err := scanner.Err(); err != nil {
 			return err
+		}
+
+		if alreadySeenFile {
+			log.Printf("%s contains older dates than %s, skipping older files", path, untilStr)
+			return nil
 		}
 	}
 
