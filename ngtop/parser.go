@@ -70,7 +70,7 @@ func (parser LogParser) Parse(
 
 	for _, path := range logFiles {
 
-		log.Printf("parsing %s", path)
+		log.Printf("parsing %s until %s", path, until)
 		file, err := os.Open(path)
 		if err != nil {
 			return err
@@ -101,6 +101,7 @@ func (parser LogParser) Parse(
 
 			if untilStr != "" && values["time"] < untilStr {
 				// already caught up, no need to continue processing
+				log.Printf("stopped parsing at %s", values["time"])
 				return nil
 			}
 

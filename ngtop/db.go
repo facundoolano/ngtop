@@ -74,7 +74,9 @@ func (dbs *DBSession) PrepareForUpdate() (*time.Time, error) {
 	var lastSeemTime *time.Time
 	// this query error is acceptable in case of db not exists or empty
 	if err := dbs.db.QueryRow("SELECT max(time) FROM access_logs").Scan(&lastSeenTimeStr); err == nil {
-		_, err := dbs.db.Exec("DELETE FROM access_logs WHERE time = ?", lastSeenTimeStr)
+		query := "DELETE FROM access_logs WHERE time = ?"
+		log.Printf("query: %s %s\n", query, lastSeenTimeStr)
+		_, err := dbs.db.Exec(query, lastSeenTimeStr)
 		if err != nil {
 			return nil, err
 		}
