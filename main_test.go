@@ -276,7 +276,45 @@ func TestMultipleLogFiles(t *testing.T) {
 	// include gzipped value
 }
 
-//
+func TestUpdatedLog(t *testing.T) {
+	// TODO refactor runCommand to reduce duplication here
+	logFile, err := os.CreateTemp("", "access.log")
+	assertEqual(t, err, nil)
+	defer os.Remove(logFile.Name())
+	dbFile, err := os.CreateTemp("", "ngtop.db")
+	assertEqual(t, err, nil)
+	defer os.Remove(dbFile.Name())
+
+	parser := ngtop.NewParser(DEFAULT_LOG_FORMAT)
+	dbs, err := ngtop.InitDB(dbFile.Name(), parser.Fields)
+	assertEqual(t, err, nil)
+	defer dbs.Close()
+
+	os.Args = []string{"ngtop"}
+	_, spec := querySpecFromCLI()
+
+	previousOffset, err := logFile.Write([]byte(`xx.xx.xx.xx - - [24/Jul/2024:00:00:28 +0000] "GET /feed HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+xx.xx.xx.xx - - [24/Jul/2024:00:00:30 +0000] "GET /feed HTTP/1.1" 301 169 "-" "feedi/0.1.0 (+https://github.com/facundoolano/feedi)"`))
+	assertEqual(t, err, nil)
+
+	err = loadLogs(parser, logFile.Name(), dbs)
+	assertEqual(t, err, nil)
+	_, rows, err := dbs.QueryTop(spec)
+	assertEqual(t, err, nil)
+	assertEqual(t, rows[0][0], "2")
+
+	// append more logs to file
+	_, err = logFile.WriteAt([]byte(`xx.xx.xx.xx - - [24/Jul/2024:00:00:56 +0000] "GET /blog/deconstructing-the-role-playing-videogame/ HTTP/1.1" 200 14224 "-" "feedi/0.1.0 (+https://github.com/facundoolano/feedi)"
+xx.xx.xx.xx - - [24/Jul/2024:00:01:18 +0000] "GET /feed.xml HTTP/1.1" 200 9641 "https://olano.dev/feed.xml" "FreshRSS/1.24.0 (Linux; https://freshrss.org)"`), int64(previousOffset))
+	assertEqual(t, err, nil)
+
+	// run again and expect to see new requests
+	err = loadLogs(parser, logFile.Name(), dbs)
+	assertEqual(t, err, nil)
+	_, rows, err = dbs.QueryTop(spec)
+	assertEqual(t, err, nil)
+	assertEqual(t, rows[0][0], "4")
+}
 
 // ------ HELPERS --------
 
