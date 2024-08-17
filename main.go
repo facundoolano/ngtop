@@ -85,7 +85,7 @@ func querySpecFromCLI() (*kong.Context, *ngtop.RequestCountSpec) {
 		kong.Description("ngtop prints request counts from nginx access.logs based on a command-line query"),
 		kong.UsageOnError(),
 		kong.Vars{
-			"version": "ngtop v0.4.3",
+			"version": "ngtop v0.4.4",
 			"fields":  strings.Join(fieldNames, ","),
 		},
 	)
