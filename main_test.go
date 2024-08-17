@@ -293,9 +293,10 @@ func TestUpdatedLog(t *testing.T) {
 	os.Args = []string{"ngtop"}
 	_, spec := querySpecFromCLI()
 
-	previousOffset, err := logFile.Write([]byte(`xx.xx.xx.xx - - [24/Jul/2024:00:00:28 +0000] "GET /feed HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+	bytesWritten, err := logFile.Write([]byte(`xx.xx.xx.xx - - [24/Jul/2024:00:00:28 +0000] "GET /feed HTTP/1.1" 301 169 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
 xx.xx.xx.xx - - [24/Jul/2024:00:00:30 +0000] "GET /feed HTTP/1.1" 301 169 "-" "feedi/0.1.0 (+https://github.com/facundoolano/feedi)"`))
 	assertEqual(t, err, nil)
+	previousOffset := bytesWritten
 
 	err = loadLogs(parser, logFile.Name(), dbs)
 	assertEqual(t, err, nil)
@@ -304,16 +305,37 @@ xx.xx.xx.xx - - [24/Jul/2024:00:00:30 +0000] "GET /feed HTTP/1.1" 301 169 "-" "f
 	assertEqual(t, rows[0][0], "2")
 
 	// append more logs to file
-	_, err = logFile.WriteAt([]byte(`xx.xx.xx.xx - - [24/Jul/2024:00:00:56 +0000] "GET /blog/deconstructing-the-role-playing-videogame/ HTTP/1.1" 200 14224 "-" "feedi/0.1.0 (+https://github.com/facundoolano/feedi)"
+	bytesWritten, err = logFile.WriteAt([]byte(`
+xx.xx.xx.xx - - [24/Jul/2024:00:00:56 +0000] "GET /blog/deconstructing-the-role-playing-videogame/ HTTP/1.1" 200 14224 "-" "feedi/0.1.0 (+https://github.com/facundoolano/feedi)"
 xx.xx.xx.xx - - [24/Jul/2024:00:01:18 +0000] "GET /feed.xml HTTP/1.1" 200 9641 "https://olano.dev/feed.xml" "FreshRSS/1.24.0 (Linux; https://freshrss.org)"`), int64(previousOffset))
 	assertEqual(t, err, nil)
+	previousOffset += bytesWritten
 
-	// run again and expect to see new requests
+	// run again with more entries and expect to see new requests
 	err = loadLogs(parser, logFile.Name(), dbs)
 	assertEqual(t, err, nil)
 	_, rows, err = dbs.QueryTop(spec)
 	assertEqual(t, err, nil)
 	assertEqual(t, rows[0][0], "4")
+
+	// run again without more entries, count should be the same
+	err = loadLogs(parser, logFile.Name(), dbs)
+	assertEqual(t, err, nil)
+	_, rows, err = dbs.QueryTop(spec)
+	assertEqual(t, err, nil)
+	assertEqual(t, rows[0][0], "4")
+
+	// append another one with the same date as the previous last one
+	_, err = logFile.WriteAt([]byte(`
+xx.xx.xx.xx - - [24/Jul/2024:00:01:18 +0000] "GET /blog/deconstructing-the-role-playing-videogame/ HTTP/1.1" 200 14224 "-" "feedi/0.1.0 (+https://github.com/facundoolano/feedi)"`), int64(previousOffset))
+	assertEqual(t, err, nil)
+
+	// check that the new request is added even though it has the same date as the cut out one
+	err = loadLogs(parser, logFile.Name(), dbs)
+	assertEqual(t, err, nil)
+	_, rows, err = dbs.QueryTop(spec)
+	assertEqual(t, err, nil)
+	assertEqual(t, rows[0][0], "5")
 }
 
 // ------ HELPERS --------
