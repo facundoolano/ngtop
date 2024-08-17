@@ -101,8 +101,8 @@ func (parser LogParser) Parse(
 			}
 
 			if untilStr != "" && values["time"] < untilStr {
-				// if this file contains entries older than the untilStr, it means we already parsed part of it before
-				// since the files contains oldest entries at the beginning, we need to keep parsing until the end to get
+				// If this file contains entries older than the untilStr, it means we already parsed part of it before.
+				// Since the files contains oldest entries at the beginning, we need to keep parsing until the end to get
 				// all the updates, but we flag it as already seen so we skip parsing newer ones
 				alreadySeenFile = true
 				continue
