@@ -19,6 +19,8 @@ jobs:
             cc: gcc
           - goarch: arm64
             cc: aarch64-linux-gnu-gcc
+    env:
+      filename: ngtop-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
 
     steps:
     - name: Checkout code
@@ -32,9 +34,9 @@ jobs:
     - name: install cross compiler
       run: sudo apt-get -y install gcc-aarch64-linux-gnu
     - name: Build Binary
-      run: CGO_ENABLED=1 CC=${{ matrix.cc }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o ngtop-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} .
+      run: CGO_ENABLED=1 CC=${{ matrix.cc }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o $filename .
 
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
-        files: "ngtop-*"
+        files: $filename
