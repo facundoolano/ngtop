@@ -35,6 +35,8 @@ jobs:
       run: sudo apt-get -y install gcc-aarch64-linux-gnu
     - name: Build Binary
       run: CGO_ENABLED=1 CC=${{ matrix.cc }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o ${{ env.filename }} .
+
+    # if the same arch as the runner, try the binary to verify it runs properly
     - name: test binary
       if: matrix.goarch == 'amd64'
       run: chmod +x ${{ env.filename }} && ./${{ env.filename }}
