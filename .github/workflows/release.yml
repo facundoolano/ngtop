@@ -36,6 +36,7 @@ jobs:
     - name: Build Binary
       run: CGO_ENABLED=1 CC=${{ matrix.cc }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o ${{ env.filename }} .
     - name: test binary
+      if: matrix.goarch == 'amd64'
       run: chmod +x ${{ env.filename }} && ./${{ env.filename }}
 
     - name: Release
