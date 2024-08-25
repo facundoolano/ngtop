@@ -34,7 +34,8 @@ jobs:
     - name: install cross compiler
       run: sudo apt-get -y install gcc-aarch64-linux-gnu
     - name: Build Binary
-      run: CGO_ENABLED=1 CC=${{ matrix.cc }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w -extldflags=-static" -tags sqlite_omit_load_extension -o ${{ env.filename }} .
+      # see https://www.arp242.net/static-go.html
+      run: CGO_ENABLED=1 CC=${{ matrix.cc }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w -extldflags=-static -linkmode 'external'" -tags sqlite_omit_load_extension -o ${{ env.filename }} .
 
     # if the same arch as the runner, try the binary to verify it runs properly
     - name: test binary
