@@ -19,6 +19,8 @@ jobs:
             cc: gcc
           - goarch: arm64
             cc: aarch64-linux-gnu-gcc
+    env:
+      filename: ngtop-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
 
     steps:
     - name: Checkout code
@@ -32,9 +34,16 @@ jobs:
     - name: install cross compiler
       run: sudo apt-get -y install gcc-aarch64-linux-gnu
     - name: Build Binary
-      run: CGO_ENABLED=1 CC=${{ matrix.cc }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o ngtop-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} .
+      # see https://www.arp242.net/static-go.html
+      # an alternative is to switch to https://pkg.go.dev/modernc.org/sqlite (a pure go implementation) and remove cgo altogether
+      run: CGO_ENABLED=1 CC=${{ matrix.cc }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w -extldflags=-static" -tags sqlite_omit_load_extension,netgo,osusergo -o ${{ env.filename }} .
+
+    # if the same arch as the runner, try the binary to verify it runs properly
+    - name: test binary
+      if: matrix.goarch == 'amd64'
+      run: chmod +x ${{ env.filename }} && ./${{ env.filename }}
 
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
-        files: "ngtop-*"
+        files: ${{ env.filename }}
