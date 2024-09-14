@@ -6,6 +6,9 @@ pull:
 run:
 	NGTOP_LOGS_PATH=./logs/access.log* go run .
 
+test:
+	go test ./...
+
 db:
 	sqlite3 -cmd ".open ngtop.db"
 
