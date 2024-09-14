@@ -73,6 +73,12 @@ var KNOWN_FIELDS = []LogField{
 		ColumnSpec:   "TEXT",
 	},
 	{
+		LogFormatVar: "remote_user",
+		CLINames:     []string{"user", "username", "remote_user", "remoteuser"},
+		ColumnName:   "user",
+		ColumnSpec:   "TEXT",
+	},
+	{
 		LogFormatVar: "status",
 		CLINames:     []string{"status"},
 		ColumnName:   "status",
